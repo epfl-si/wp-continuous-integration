@@ -2,20 +2,24 @@ import https from 'https';
 import {Config} from "./configFileReader";
 
 export function callGitHubAPI<T>(
-	config: Config,
 	endpoint: string,
 	method: 'GET' | 'POST' = 'GET',
+	token?: string,
 	body?: any
 ): Promise<T> {
+	if(!token) {
+		// TODO call function
+	}
+
 	const data = body ? JSON.stringify(body) : null;
 
 	const options: https.RequestOptions = {
 		hostname: 'api.github.com',
-		path: `/repos/epfl-si/${endpoint}`,
+		path: `${endpoint}`,
 		method,
 		headers: {
 			'User-Agent': 'wp-continuous-integration',
-			// 'Authorization': `Bearer ${config.TOKEN}`,
+			'Authorization': `Bearer ${token}`,
 			'Accept': 'application/vnd.github+json',
 			...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {})
 		},
