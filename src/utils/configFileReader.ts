@@ -3,8 +3,9 @@ import * as yaml from 'js-yaml';
 import {error, getErrorMessage} from "./logger";
 
 export interface Config {
-  REPOSITORIES: string;
+  REPOSITORIES: string[];
   DEBUG: boolean;
+  NAMESPACE: string;
 }
 
 export function loadConfig(configFilePath: any): Config | undefined {

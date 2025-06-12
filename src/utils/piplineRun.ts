@@ -1,82 +1,235 @@
-import * as k8s from '@kubernetes/client-node';
+import {KubernetesAPI} from "./kubernetes";
+import {formatDateUTC} from "./utils";
+import {PullRequestInfo} from "../pullRequestInfo";
 
-const kc = new k8s.KubeConfig();
-kc.loadFromDefault();
-const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
-const customApi = kc.makeApiClient(k8s.CustomObjectsApi);
+export class PipelineRun {
+	private _namespace: string;
+	private _flavor: string;
+	private _pullRequest: PullRequestInfo;
 
-const pvcManifest = {
-	apiVersion: 'v1',
-	kind: 'PersistentVolumeClaim',
-	metadata: {
-		name: pvcName,
-		namespace: inventoryNamespace,
-	},
-	spec: {
-		accessModes: ['ReadWriteOnce'],
-		storageClassName: 'wordpress-nfs-build',
-		resources: {
-			requests: {
-				storage: '50Mi',
-			},
-		},
-	},
-};
+	constructor(namespace: string, flavor: string, pr: PullRequestInfo) {
+		this._flavor = flavor;
+		this._namespace = namespace;
+		this._pullRequest = pr;
+	}
 
-const pipelineRunManifest = {
-	apiVersion: 'tekton.dev/v1beta1',
-	kind: 'PipelineRun',
-	metadata: {
-		name: pipelineRunName,
-		namespace: inventoryNamespace,
-	},
-	spec: {
-		timeout: '2h',
-		serviceAccountName: serviceAccount,
-		pipelineRef: {
-			name: pipelineName,
-		},
-		params: [
-			{
-				name: 'next-build-id',
-				value: buildId,
-			},
-		],
-		workspaces: [
-			{
-				name: 'shared-workspace',
-				persistentVolumeClaim: {
-					claimName: pvcName,
+	/*async readAWSSecret(secretName: string, namespace: string) {
+		try {
+			const res = await k8sApi.readNamespacedSecret(secretName, namespace);
+			const secret = res.body;
+
+			// Decode the base64-encoded data
+			const decodedData = {};
+			for (const key in secret.data) {
+				decodedData[key] = Buffer.from(secret.data[key], 'base64').toString('utf-8');
+			}
+
+			return decodedData;
+		} catch (err) {
+			console.error('Error reading secret:', err.body || err);
+		}
+	}*/
+
+	async createPVC() {
+		const claimName = `tekton-scratch-${new Date().toISOString()}-${this._flavor}`;
+		await KubernetesAPI.core.createNamespacedPersistentVolumeClaim({namespace: this._namespace,
+			body: {
+				apiVersion: 'v1',
+				kind: 'PersistentVolumeClaim',
+				metadata: {
+					name: claimName,
+					namespace: this._namespace,
 				},
-			},
-			{
-				name: 'dockerconfig',
-				secret: {
-					secretName: 'tekton-push',
+				spec: {
+					accessModes: ['ReadWriteOnce'],
+					storageClassName: 'wordpress-nfs-build',
+					resources: {
+						requests: {
+							storage: '50Mi',
+						},
+					},
 				},
-			},
-		],
-	},
-};
+			}});
+		return claimName;
+	}
 
-async function createPipelineRun() {
-	try {
-		await k8sApi.createNamespacedPersistentVolumeClaim(inventoryNamespace, pvcManifest as any);
-		console.log(`✅ PVC '${pvcName}' created`);
+	/*async createPipeline(namespace: string, flavor: string) {
+		const quayHostname = 'quay-its.epfl.ch';
+		const quayOrganization = 'epfl-si';
+
+		const awsSecret = readAWSSecret(namespace);
+		const AWS_ACCESS_KEY_ID;
+		const AWS_SECRET_ACCESS_KEY;
+
+		const pipeline = {
+			apiVersion: 'tekton.dev/v1',
+			kind: 'Pipeline',
+			metadata: {
+				name: `wp-base-build-${flavor}`,
+				namespace: namespace,
+			},
+			spec: {
+				workspaces: [
+					{ name: 'shared-workspace' },
+					{ name: 'dockerconfig' }
+				],
+				tasks: [
+					{
+						name: 'prep',
+						taskSpec: {
+							steps: [
+								{
+									name: 'sed',
+									image: 'public.ecr.aws/bitnami/git:latest',
+									script: [
+										'set -e -x',
+										'rm -rf /workspace/source/wp-ops',
+										'git clone https://github.com/epfl-si/wp-ops /workspace/source/wp-ops',
+										`sed -i 's;FROM wp-base;FROM ${quayHostname}/${quayOrganization}/wp-base:wp-base-${flavor};g' /workspace/source/wp-ops/docker/!*!/Dockerfile`,
+										`sed -i 's;--from=wp-base;--from=${quayHostname}/${quayOrganization}/wp-base:wp-base-${flavor};g' /workspace/source/wp-ops/docker/!*!/Dockerfile`,
+										`sed -i 's;FROM bitnami/nginx-ingress-controller:1.12.1;FROM ${quayHostname}/${quayOrganization}/bitnami-nginx-ingress-controller:1.12.1;g' /workspace/source/wp-ops/docker/!*!/Dockerfile`,
+										`sed -i 's;FROM ubuntu:jammy;FROM ${quayHostname}/${quayOrganization}/ubuntu:jammy;g' /workspace/source/wp-ops/docker/!*!/Dockerfile`
+									].join('\n'),
+								}
+							]
+						},
+						workspaces: [
+							{ name: 'source', workspace: 'shared-workspace' },
+							{ name: 'dockerconfig', workspace: 'dockerconfig' }
+						]
+					},
+					{
+						name: 'build-wp-base',
+						runAfter: ['prep'],
+						taskRef: { kind: 'Task', name: 'buildah' },
+						params: [
+							{ name: 'IMAGE', value: `${quayHostname}/${quayOrganization}/wp-base:wp-base-${flavor}` },
+							{ name: 'CONTEXT', value: 'wp-ops/docker/wp-base' },
+							{ name: 'VERBOSE', value: 'true' },
+							{
+								name: 'BUILD_EXTRA_ARGS',
+								value: `--build-arg AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} --build-arg AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}`
+							}
+						],
+						workspaces: [
+							{ name: 'source', workspace: 'shared-workspace' },
+							{ name: 'dockerconfig', workspace: 'dockerconfig' }
+						]
+					},
+					{
+						name: 'build-wp-nginx',
+						runAfter: ['build-wp-base'],
+						taskRef: { kind: 'Task', name: 'buildah' },
+						params: [
+							{ name: 'IMAGE', value: `${quayHostname}/${quayOrganization}/wp-nginx:wp-nginx-${flavor}` },
+							{ name: 'CONTEXT', value: 'wp-ops/docker/wordpress-nginx' },
+							{ name: 'VERBOSE', value: 'true' }
+						],
+						workspaces: [
+							{ name: 'source', workspace: 'shared-workspace' },
+							{ name: 'dockerconfig', workspace: 'dockerconfig' }
+						]
+					},
+					{
+						name: 'build-wp-php',
+						runAfter: ['build-wp-base'],
+						taskRef: { kind: 'Task', name: 'buildah' },
+						params: [
+							{ name: 'IMAGE', value: `${quayHostname}/${quayOrganization}/wp-php:wp-php-${flavor}` },
+							{ name: 'CONTEXT', value: 'wp-ops/docker/wordpress-php' },
+							{ name: 'VERBOSE', value: 'true' }
+						],
+						workspaces: [
+							{ name: 'source', workspace: 'shared-workspace' },
+							{ name: 'dockerconfig', workspace: 'dockerconfig' }
+						]
+					},
+					{
+						name: 'patch-deployment',
+						runAfter: ['build-wp-nginx', 'build-wp-php'],
+						taskSpec: {
+							steps: [
+								{
+									name: 'rollout',
+									image: 'public.ecr.aws/bitnami/kubectl:latest',
+									script: `kubectl rollout restart deployment/wp-nginx-${flavor}`
+								}
+							]
+						}
+					}
+				]
+			}
+		};
+
 
 		await customApi.createNamespacedCustomObject(
 			'tekton.dev',
-			'v1beta1',
-			inventoryNamespace,
-			'pipelineruns',
-			pipelineRunManifest
+			'v1',
+			namespace,
+			'pipeline',
+			pipeline
 		);
-		console.log(`✅ PipelineRun '${pipelineRunName}' created`);
-	} catch (err: any) {
-		if (err.response) {
-			console.error('❌ Error:', err.response.body);
-		} else {
-			console.error('❌ Error:', err.message);
-		}
+	}*/
+
+	async createPipelineRun(claimName: string) {
+		const pipelinerun = {
+			apiVersion: 'tekton.dev/v1beta1',
+			kind: 'PipelineRun',
+			metadata: {
+				name: `run-pipeline-wp-base-build-${this._flavor}-${formatDateUTC()}`,
+				namespace: this._namespace,
+			},
+			spec: {
+				timeout: '2h',
+				serviceAccountName: 'pipeline',
+				pipelineRef: {
+					name: `wp-base-build`,
+				},
+				params:
+					[
+						{
+							name: 'next-build-id',
+							value: this._flavor
+						},
+						{
+							name: 'target-deployment',
+							value: `wp-nginx-${this._flavor}`
+						}
+					],
+				workspaces: [
+					{
+						name: 'shared-workspace',
+						persistentVolumeClaim: {
+							claimName: claimName,
+						},
+					},
+					{
+						name: 'dockerconfig',
+						secret: {
+							secretName: 'tekton-push',
+						},
+					},
+				],
+			},
+		};
+		await KubernetesAPI.custom.createNamespacedCustomObject(
+			{
+				group: 'tekton.dev',
+				version: 'v1',
+				namespace: this._namespace,
+				plural: 'pipelineruns',
+				body: pipelinerun
+			}
+		);
+	}
+
+	async createAndAwaitTektonBuild() {
+			const claimName = await this.createPVC();
+			// TODO pass repo and branch as arguments to pipelinerun
+			// const pipeline = await createPipeline(namespace, flavor);
+			await this.createPipelineRun(claimName);
+			// TODO wait pipeline build
+			return true;
+		// TODO delete all PVC in the same fruit
 	}
 }

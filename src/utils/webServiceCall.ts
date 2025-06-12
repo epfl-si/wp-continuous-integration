@@ -1,26 +1,10 @@
 import https from 'https';
-import jwt from 'jsonwebtoken';
-import * as fs from "fs";
-
-export function getToken() {
-	const privateKey = fs.readFileSync('/keybase/team/epfl_wp_prod/wp-continuous-integration.2025-06-06.private-key.pem', 'utf8');
-
-	const now = Math.floor(Date.now() / 1000);
-	const payload = {
-		iat: now,
-		exp: now + 600,     // max 10 minutes
-		iss: 'Iv23liLEpatTrWSJ0N33'
-	};
-
-	return jwt.sign(payload, privateKey, {
-		algorithm: 'RS256',
-	});
-}
+import {Config} from "./configFileReader";
 
 export function callGitHubAPI<T>(
+	config: Config,
 	endpoint: string,
 	method: 'GET' | 'POST' = 'GET',
-	token: string,
 	body?: any
 ): Promise<T> {
 	const data = body ? JSON.stringify(body) : null;
@@ -31,7 +15,7 @@ export function callGitHubAPI<T>(
 		method,
 		headers: {
 			'User-Agent': 'wp-continuous-integration',
-			'Authorization': `Bearer ${token}`,
+			// 'Authorization': `Bearer ${config.TOKEN}`,
 			'Accept': 'application/vnd.github+json',
 			...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {})
 		},
