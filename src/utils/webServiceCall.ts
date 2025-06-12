@@ -1,58 +1,26 @@
 import https from 'https';
+import {getAccessToken} from "./jwt";
 import {Config} from "./configFileReader";
 
-export function callGitHubAPI<T>(
+export async function callGitHubAPI<T>(
+	config: Config,
 	endpoint: string,
 	method: 'GET' | 'POST' = 'GET',
 	token?: string,
 	body?: any
 ): Promise<T> {
 	if(!token) {
-		// TODO call function
+		token = await getAccessToken(config)
 	}
 
-	const data = body ? JSON.stringify(body) : null;
-
-	const options: https.RequestOptions = {
-		hostname: 'api.github.com',
-		path: `${endpoint}`,
-		method,
-		headers: {
-			'User-Agent': 'wp-continuous-integration',
-			'Authorization': `Bearer ${token}`,
-			'Accept': 'application/vnd.github+json',
-			...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {})
-		},
-	};
-
-	return new Promise<T>((resolve, reject) => {
-		const req = https.request(options, res => {
-			let rawData = '';
-
-			res.on('data', chunk => {
-				rawData += chunk;
-			});
-
-			res.on('end', () => {
-				if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-					try {
-						const parsed = JSON.parse(rawData);
-						resolve(parsed);
-					} catch (e) {
-						reject(new Error('Failed to parse response: ' + rawData));
-					}
-				} else {
-					reject(new Error(`GitHub API error ${res.statusCode}: ${rawData}`));
-				}
-			});
-		});
-
-		req.on('error', reject);
-
-		if (data) {
-			req.write(data);
-		}
-
-		req.end();
-	});
+	const result = await fetch(`https://api.github.com${endpoint}`, {method, headers:
+			{
+				'User-Agent': 'wp-continuous-integration',
+				'Authorization': `Bearer ${token}`,
+				'Accept': 'application/vnd.github+json',
+				...(body ? { 'Content-Type': 'application/json' } : {})
+			},
+		body
+	})
+	return await result.json();
 }

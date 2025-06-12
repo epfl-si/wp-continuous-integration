@@ -1,4 +1,8 @@
-import {ObjectCoreV1Api, ObjectCustomObjectsApi, ObjectAppsV1Api} from "@kubernetes/client-node/dist/gen/types/ObjectParamAPI";
+import {
+	ObjectAppsV1Api,
+	ObjectCoreV1Api,
+	ObjectCustomObjectsApi
+} from "@kubernetes/client-node/dist/gen/types/ObjectParamAPI";
 
 const k8s = require('@kubernetes/client-node');
 
@@ -36,6 +40,17 @@ export class KubernetesAPI {
 		return this.singleton;
 	}
 
+	static async readSecret(namespace: string, name: string) {
+		const res = await KubernetesAPI.core.readNamespacedSecret({name, namespace});
+		const secret = res.data;
+
+		if (!secret) {
+			throw new Error("Secret not found");
+		}
+
+		return Object.fromEntries(Object.keys(secret).map(k => [k, Buffer.from(secret[k], 'base64').toString('utf-8')]));
+	}
+
 	static async WPNginxFlavorsDeployments(namespace: string) {
 		const deployments =  await KubernetesAPI.apps.listNamespacedDeployment({namespace});
 		return deployments.items.filter((dep) =>
@@ -46,8 +61,6 @@ export class KubernetesAPI {
 	}
 
 	static async getDeploymentsSortedByLastDeployDesc(namespace: string) {
-		const results: { deploymentName: any; date: any; status: string; }[] = [];
-
 		const replicaSets = await KubernetesAPI.apps.listNamespacedReplicaSet({namespace});
 		const replicaSetsItems = replicaSets.items;
 		const deployments = await KubernetesAPI.WPNginxFlavorsDeployments(namespace);
@@ -66,7 +79,6 @@ export class KubernetesAPI {
 				)
 				.pop();
 
-			// Store the result
 			return {deploymentName: deployment.metadata?.name, date: latestRs ? latestRs.metadata?.creationTimestamp : null, status: 'Available'};
 		});
 	}

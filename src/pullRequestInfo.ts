@@ -62,7 +62,7 @@ export class PullRequestInfo {
 			updated_at: string
 		}
 		try {
-			const comments: BotComment[] = await callGitHubAPI(`/repos/epfl-si/${this._repository}/pulls/${this._number}/comments`, 'GET');
+			const comments: BotComment[] = await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/pulls/${this._number}/comments`, 'GET');
 			const lastBotComment = comments
 				.filter(comment => comment.body.includes('[wp-continuous-integration]'))
 				.reduce((latest, current) =>
@@ -76,7 +76,7 @@ export class PullRequestInfo {
 
 	async createComment(message: string){
 		try {
-			await callGitHubAPI(`/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'POST', undefined, message);
+			await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'POST', undefined, message);
 		} catch (err) {
 			error(`API call failed for ${this._repository}/pulls/${this._number}/comments`, err);
 		}
@@ -84,12 +84,7 @@ export class PullRequestInfo {
 	}
 
 	static async getPullRequestsByRepo(config: Config, repo: string) {
-		try {
-			return await callGitHubAPI<any[]>(`/repos/epfl-si/${repo}/pulls?state=open`, 'GET');
-		} catch (err) {
-			error(`API call failed for ${repo} ${getErrorMessage(err)}`, err);
-			return [];
-		}
+		return await callGitHubAPI<any[]>(config, `/repos/epfl-si/${repo}/pulls?state=open`, 'GET');
 	}
 
 	static async getAvailablePRsSortedByDate(config: Config) {
