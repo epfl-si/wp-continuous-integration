@@ -1,5 +1,5 @@
 import {KubernetesAPI} from "./kubernetes";
-import {formatDateUTC} from "./utils";
+import {formatDateUTC, randomRFC1123Fragment} from "./utils";
 import {PullRequestInfo} from "../pullRequestInfo";
 
 export class PipelineRun {
@@ -31,7 +31,7 @@ export class PipelineRun {
 	}*/
 
 	async createPVC() {
-		const claimName = `tekton-scratch-${new Date().toISOString()}-${this._flavor}`;
+		const claimName = `tekton-scratch-${randomRFC1123Fragment()}-${this._flavor}`;
 		await KubernetesAPI.core.createNamespacedPersistentVolumeClaim({namespace: this._namespace,
 			body: {
 				apiVersion: 'v1',
@@ -171,17 +171,18 @@ export class PipelineRun {
 		);
 	}*/
 
-	async createPipelineRun(claimName: string) {
+	async createPipelineRun(claimName: string, pr: PullRequestInfo) {
 		const pipelinerun = {
-			apiVersion: 'tekton.dev/v1beta1',
+			apiVersion: 'tekton.dev/v1',
 			kind: 'PipelineRun',
 			metadata: {
-				name: `run-pipeline-wp-base-build-${this._flavor}-${formatDateUTC()}`,
+				name: `wp-base-build-${this._flavor}-${formatDateUTC()}`,
 				namespace: this._namespace,
 			},
 			spec: {
-				timeout: '2h',
-				serviceAccountName: 'pipeline',
+				taskRunTemplate: {
+					serviceAccountName: 'pipeline'
+				},
 				pipelineRef: {
 					name: `wp-base-build`,
 				},
@@ -189,11 +190,11 @@ export class PipelineRun {
 					[
 						{
 							name: 'next-build-id',
-							value: this._flavor
+							value: `${this._flavor}-${pr.imageMoniker()}`
 						},
 						{
 							name: 'target-deployment',
-							value: `wp-nginx-${this._flavor}`
+							value: `${this._flavor}`
 						}
 					],
 				workspaces: [
@@ -223,11 +224,11 @@ export class PipelineRun {
 		);
 	}
 
-	async createAndAwaitTektonBuild() {
+	async createAndAwaitTektonBuild(pr: PullRequestInfo) {
 			const claimName = await this.createPVC();
 			// TODO pass repo and branch as arguments to pipelinerun
 			// const pipeline = await createPipeline(namespace, flavor);
-			await this.createPipelineRun(claimName);
+			await this.createPipelineRun(claimName, pr);
 			// TODO wait pipeline build
 			return true;
 		// TODO delete all PVC in the same fruit

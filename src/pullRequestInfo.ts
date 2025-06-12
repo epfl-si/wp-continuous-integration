@@ -1,6 +1,7 @@
 import {callGitHubAPI} from "./utils/webServiceCall";
 import {error, getErrorMessage} from "./utils/logger";
 import {Config} from "./utils/configFileReader";
+import async from "async";
 
 export class PullRequestInfo {
 	private _repository: string;
@@ -12,7 +13,6 @@ export class PullRequestInfo {
 	private _updatedAt: Date;
 	private _branchName: string; //head ref
 	private _commitSha: string; //head sha
-	private _mostRecentWPCIComment: any;
 	private _config: Config;
 
 	constructor(opts: {config: Config, repository: string, id: number, url: string, number: number, title: string, userLogin: string, updatedAt: Date, branchName: string, commitSha: string}) {
@@ -33,7 +33,13 @@ export class PullRequestInfo {
 	}
 
 	fail(reason: any): string {
-		return `[wp-continuous-integration] ${this.moniker()} failed to build: ${reason}`;
+		const verbatim = "```"
+		return `[wp-continuous-integration] ${this.moniker()} failed to build: 
+		
+${verbatim}
+${reason}
+${verbatim}
+		`;
 	}
 
 	skipped(): string {
@@ -44,10 +50,6 @@ export class PullRequestInfo {
 		return `Pull Request ${this._number} of ${this._repository} made on branch ${this._branchName} at commit ${this._commitSha}`
 	}
 
-	mostRecentWPCIComment() {
-		return this._mostRecentWPCIComment;
-	}
-
 	updatedAt() {
 		return this._updatedAt;
 	}
@@ -56,31 +58,25 @@ export class PullRequestInfo {
 		return this._commitSha;
 	}
 
-	async getWPCIComment() {
+	imageMoniker() {
+		return `${this._number}-`;// TODO
+	}
+
+	async isActive() {
 		type BotComment = {
 			body: any,
 			updated_at: string
 		}
-		try {
-			const comments: BotComment[] = await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/pulls/${this._number}/comments`, 'GET');
-			const lastBotComment = comments
-				.filter(comment => comment.body.includes('[wp-continuous-integration]'))
-				.reduce((latest, current) =>
-					new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest);
-			this._mostRecentWPCIComment = lastBotComment?.body;
-		} catch (err) {
-			error(`API call failed for ${this._repository}/pulls/${this._number}/comments`, err);
-		}
-		return '';
+		const comments: BotComment[] = await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/pulls/${this._number}/comments`, 'GET');
+		const lastBotComments = comments.filter(comment => comment.body.includes('[wp-continuous-integration]'));
+		if (lastBotComments.length == 0) return true;
+		const comment = lastBotComments.reduce((latest, current) =>
+				new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest);
+		return comment?.body?.indexOf(this.commitSha()) == -1;
 	}
 
 	async createComment(message: string){
-		try {
-			await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'POST', undefined, message);
-		} catch (err) {
-			error(`API call failed for ${this._repository}/pulls/${this._number}/comments`, err);
-		}
-		return '';
+		await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'POST', undefined, {body: message});
 	}
 
 	static async getPullRequestsByRepo(config: Config, repo: string) {
@@ -95,11 +91,10 @@ export class PullRequestInfo {
 			for ( const pr of list ) {
 				const pri = new PullRequestInfo({config, repository, id: pr.id, url: pr.url, number: pr.number, title: pr.title,
 					userLogin: pr.user.login, updatedAt: pr.updated_at, branchName: pr.head.ref, commitSha: pr.head.sha});
-				await pri.getWPCIComment();
 				pullRequests.push(pri)
 			}
 		}
-		const activePullRequests = pullRequests.filter(pr => !pr.mostRecentWPCIComment() || pr.mostRecentWPCIComment().indexOf(pr.commitSha()) == -1);
-		return activePullRequests.sort((a, b) => new Date(b.updatedAt()).getTime() - new Date(a.updatedAt()).getTime());
+		const activePullRequests = await async.filter(pullRequests, async (pr) => pr.isActive());
+		return activePullRequests.sort((a, b) => new Date(a.updatedAt()).getTime() - new Date(b.updatedAt()).getTime());
 	}
 }

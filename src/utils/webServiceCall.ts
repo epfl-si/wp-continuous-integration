@@ -7,20 +7,30 @@ export async function callGitHubAPI<T>(
 	endpoint: string,
 	method: 'GET' | 'POST' = 'GET',
 	token?: string,
-	body?: any
+	body?: object
 ): Promise<T> {
 	if(!token) {
 		token = await getAccessToken(config)
 	}
 
-	const result = await fetch(`https://api.github.com${endpoint}`, {method, headers:
-			{
-				'User-Agent': 'wp-continuous-integration',
-				'Authorization': `Bearer ${token}`,
-				'Accept': 'application/vnd.github+json',
-				...(body ? { 'Content-Type': 'application/json' } : {})
-			},
-		body
-	})
-	return await result.json();
+	try {
+		const response = await fetch(`https://api.github.com${endpoint}`, {
+			method, headers:
+				{
+					'User-Agent': 'wp-continuous-integration',
+					'Authorization': `Bearer ${token}`,
+					'Accept': 'application/vnd.github+json',
+					...(body ? {'Content-Type': 'application/json'} : {})
+				},
+			body: JSON.stringify(body)
+		})
+		const result = await response.json();
+		if (result?.status?.startsWith("4")) {
+			throw new Error(`GitHub application error: ${JSON.stringify(result)}`)
+		}
+		return result;
+	} catch ( e ) {
+		console.error(e)
+		throw e;
+	}
 }

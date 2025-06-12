@@ -27,8 +27,7 @@ info(`Cron job scheduler started with version ${version}`, {});
 
 async function scheduleActivePRsToDeployments() {
 	if (!config) {
-		error("Config not found", '');
-		return;
+		throw new Error("Config not found");
 	}
 	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate(config);
 	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc(config.NAMESPACE);
@@ -46,10 +45,11 @@ async function scheduleToDeployment(
 		const pr = pullRequests.shift();
 		if (!pr) break;
 		try {
-			await (new PipelineRun(namespace, deployment.deploymentName, pr!)).createAndAwaitTektonBuild();
+			await (new PipelineRun(namespace, deployment.deploymentName, pr!)).createAndAwaitTektonBuild(pr);
 			await pr.createComment(pr.success(`https://${deployment.deploymentName}`))
 			break;
 		} catch (err: any) {
+			console.error(`Failed to schedule to deployment ${deployment.deploymentName}`, err)
 			await pr.createComment(pr.fail(err))
 		}
 	}
