@@ -1,6 +1,6 @@
 export function formatDateUTC() {
 	const now = new Date();
-	const pad = (n) => n.toString().padStart(2, '0');
+	const pad = (n: number) => n.toString().padStart(2, '0');
 
 	const year = now.getUTCFullYear();
 	const month = pad(now.getUTCMonth() + 1);
