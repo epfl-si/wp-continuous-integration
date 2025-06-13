@@ -77,7 +77,7 @@ ${verbatim}
 			body: any,
 			updated_at: string
 		}
-		const comments: BotComment[] = await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/pulls/${this._number}/comments`, 'GET');
+		const comments: BotComment[] = await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'GET');
 		const lastBotComments = comments.filter(comment => comment.body.includes('[wp-continuous-integration]'));
 		if (lastBotComments.length == 0) return true;
 		const comment = lastBotComments.reduce((latest, current) =>
