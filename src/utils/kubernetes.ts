@@ -60,10 +60,7 @@ export class KubernetesAPI {
 	static async WPNginxFlavorsDeployments(namespace: string) {
 		const deployments =  await KubernetesAPI.apps.listNamespacedDeployment({namespace});
 		return deployments.items.filter((dep) =>
-			dep.metadata && dep.metadata.name &&
-			dep.metadata.name.indexOf("wp-nginx-") > -1 &&
-			dep.metadata.name.indexOf("wp-nginx-rc") == -1 &&
-			dep.metadata.name.indexOf("wp-nginx-alpha") == -1);
+			dep.metadata && dep.metadata.labels && dep.metadata.labels["self-service-flavor"] != '');
 	}
 
 	static async getDeploymentsSortedByLastDeployDesc(namespace: string): Promise<Deployment[]> {
