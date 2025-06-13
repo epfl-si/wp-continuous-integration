@@ -59,7 +59,9 @@ ${verbatim}
 	}
 
 	imageMoniker() {
-		return `${this._number}-`;// TODO
+		return this._title
+			.replace(/ /g, '_') // Replace spaces with '_'
+			.replace(/\[|\]/g, '__'); // Replace [ and ] with '__';
 	}
 
 	async isActive() {

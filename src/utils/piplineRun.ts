@@ -1,4 +1,4 @@
-import {KubernetesAPI} from "./kubernetes";
+import {Deployment, KubernetesAPI} from "./kubernetes";
 import {formatDateUTC, randomRFC1123Fragment} from "./utils";
 import {PullRequestInfo} from "../pullRequestInfo";
 
