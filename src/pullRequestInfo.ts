@@ -58,6 +58,14 @@ ${verbatim}
 		return this._commitSha;
 	}
 
+	repository() {
+		return this._repository;
+	}
+
+	branchName() {
+		return this._branchName;
+	}
+
 	imageMoniker() {
 		return this._title
 			.replace(/ /g, '_') // Replace spaces with '_'
