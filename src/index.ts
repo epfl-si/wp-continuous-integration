@@ -16,21 +16,19 @@ if (configFileIndex !== -1 && configFileIndex + 1 < args.length) {
 	info(`Using config file path: ${configFilePath}`, '');
 
 	config = loadConfig(configFilePath);
-	if (config) {
-		configLogs(config);
-	} else {
-		error('Config file not specified', '');
+	if (!config) {
+		throw new Error("Error loading config file")
 	}
+	configLogs(config);
+} else {
+	throw new Error("Config file not specified")
 }
 
 info(`Cron job scheduler started with version ${version}`, {});
 
 async function scheduleActivePRsToDeployments() {
-	if (!config) {
-		throw new Error("Config not found");
-	}
-	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate(config);
-	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc(config.NAMESPACE);
+	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate(config!);
+	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc(config!.NAMESPACE);
 	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests)))
 	for (const pr of pullRequests) {
 		await pr.createComment(pr.skipped())
