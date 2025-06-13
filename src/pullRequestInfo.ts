@@ -29,7 +29,7 @@ export class PullRequestInfo {
 	}
 
 	success(buildURL: string): string {
-		return `[wp-continuous-integration] ${this.moniker()} successes build into ${buildURL}.`;
+		return `[wp-continuous-integration] ${this.moniker()} successfully built into ${buildURL}.`; // TODO correct this
 	}
 
 	fail(reason: any): string {
@@ -43,7 +43,7 @@ ${verbatim}
 	}
 
 	skipped(): string {
-		return `[wp-continuous-integration] ${this.moniker()} skipped.`;
+		return `[wp-continuous-integration] ${this.moniker()} skipped, because too many PRs were pending.`;
 	}
 
 	moniker(): string {
