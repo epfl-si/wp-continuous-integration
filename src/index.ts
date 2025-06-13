@@ -2,7 +2,7 @@ import {configLogs, error, getErrorMessage, info} from "./utils/logger";
 import {Config, loadConfig} from "./utils/configFileReader";
 import {PullRequestInfo} from "./pullRequestInfo";
 import {PipelineRun} from "./utils/piplineRun";
-import {KubernetesAPI} from "./utils/kubernetes";
+import {Deployment, KubernetesAPI} from "./utils/kubernetes";
 
 const args = process.argv.slice(2);
 const configFileIndex = args.findIndex(arg => arg === '-p');
@@ -37,13 +37,13 @@ async function scheduleActivePRsToDeployments() {
 
 async function scheduleToDeployment(
 	namespace: string,
-	deployment: any,
+	deployment: Deployment,
 	pullRequests: PullRequestInfo[]) {
 	while(true) {
 		const pr = pullRequests.shift();
 		if (!pr) break;
 		try {
-			await (new PipelineRun(namespace, deployment.deploymentName, pr!)).createAndAwaitTektonBuild(pr);
+			await (new PipelineRun(namespace, deployment, pr!)).createAndAwaitTektonBuild(pr);
 			await pr.createComment(pr.success(`https://${deployment.deploymentName}`))
 			break;
 		} catch (err: any) {

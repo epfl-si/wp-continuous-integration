@@ -4,11 +4,11 @@ import {PullRequestInfo} from "../pullRequestInfo";
 
 export class PipelineRun {
 	private _namespace: string;
-	private _flavor: string;
+	private _deployment: Deployment;
 	private _pullRequest: PullRequestInfo;
 
-	constructor(namespace: string, flavor: string, pr: PullRequestInfo) {
-		this._flavor = flavor;
+	constructor(namespace: string, deployment: Deployment, pr: PullRequestInfo) {
+		this._deployment = deployment;
 		this._namespace = namespace;
 		this._pullRequest = pr;
 	}
@@ -31,7 +31,7 @@ export class PipelineRun {
 	}*/
 
 	async createPVC() {
-		const claimName = `tekton-scratch-${randomRFC1123Fragment()}-${this._flavor}`;
+		const claimName = `tekton-scratch-${randomRFC1123Fragment()}-${this._deployment.flavor}`;
 		await KubernetesAPI.core.createNamespacedPersistentVolumeClaim({namespace: this._namespace,
 			body: {
 				apiVersion: 'v1',
@@ -176,7 +176,7 @@ export class PipelineRun {
 			apiVersion: 'tekton.dev/v1',
 			kind: 'PipelineRun',
 			metadata: {
-				name: `wp-base-build-${this._flavor}-${formatDateUTC()}`,
+				name: `wp-base-build-${this._deployment.flavor}-${formatDateUTC()}`,
 				namespace: this._namespace,
 			},
 			spec: {
@@ -190,11 +190,11 @@ export class PipelineRun {
 					[
 						{
 							name: 'next-build-id',
-							value: `${this._flavor}-${pr.imageMoniker()}`
+							value: `${this._deployment.flavor}-${pr.imageMoniker()}`
 						},
 						{
 							name: 'target-deployment',
-							value: `${this._flavor}`
+							value: `${this._deployment.deploymentName}`
 						}
 					],
 				workspaces: [

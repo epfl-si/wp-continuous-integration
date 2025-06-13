@@ -6,6 +6,12 @@ import {
 
 const k8s = require('@kubernetes/client-node');
 
+export type Deployment = {
+	deploymentName: string,
+	flavor: string,
+	date: Date
+};
+
 export class KubernetesAPI {
 	static singleton: KubernetesAPI | undefined;
 	private _apps: ObjectAppsV1Api;
@@ -60,7 +66,7 @@ export class KubernetesAPI {
 			dep.metadata.name.indexOf("wp-nginx-alpha") == -1);
 	}
 
-	static async getDeploymentsSortedByLastDeployDesc(namespace: string) {
+	static async getDeploymentsSortedByLastDeployDesc(namespace: string): Promise<Deployment[]> {
 		const replicaSets = await KubernetesAPI.apps.listNamespacedReplicaSet({namespace});
 		const replicaSetsItems = replicaSets.items;
 		const deployments = await KubernetesAPI.WPNginxFlavorsDeployments(namespace);
@@ -79,7 +85,11 @@ export class KubernetesAPI {
 				)
 				.pop();
 
-			return {deploymentName: deployment.metadata?.name, date: latestRs ? latestRs.metadata?.creationTimestamp : null, status: 'Available'};
+			return {
+				deploymentName: deployment.metadata?.name,
+				flavor: deployment.metadata && deployment.metadata.labels ? deployment.metadata.labels["self-service-flavor"] : '',
+				date: latestRs ? latestRs.metadata?.creationTimestamp : null,
+			} as Deployment;
 		});
 	}
 }
