@@ -68,8 +68,8 @@ export class KubernetesAPI {
 	static async getDeploymentsSortedByLastDeployDesc(namespace: string): Promise<Deployment[]> {
 		const replicaSets = await KubernetesAPI.apps.listNamespacedReplicaSet({namespace});
 		const replicaSetsItems = replicaSets.items;
-		const deployments = await KubernetesAPI.WPNginxFlavorsDeployments(namespace);
-		return deployments.map((deployment) => {
+		const kubernetesDeployments = await KubernetesAPI.WPNginxFlavorsDeployments(namespace);
+		const deployments = kubernetesDeployments.map((deployment) => {
 			// Filter ReplicaSets owned by the current deployment
 			const matchingRs = replicaSetsItems.filter((rs) =>
 				rs.metadata?.ownerReferences?.some(ref =>
@@ -91,5 +91,6 @@ export class KubernetesAPI {
 				date: latestRs ? latestRs.metadata?.creationTimestamp : null,
 			} as Deployment;
 		});
+		return deployments.sort((a, b) => a.date.getTime() - b.date.getTime());
 	}
 }
