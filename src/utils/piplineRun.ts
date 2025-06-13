@@ -60,6 +60,14 @@ export class PipelineRun {
 						{
 							name: 'target-deployment',
 							value: `${this._deployment.deploymentName}`
+						},
+						{
+							name: 'repos',
+							value: [pr.repository()]
+						},
+						{
+							name: 'branch_name',
+							value: pr.branchName()
 						}
 					],
 				workspaces: [
