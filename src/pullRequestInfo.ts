@@ -67,9 +67,7 @@ ${verbatim}
 	}
 
 	imageMoniker() {
-		return this._title
-			.replace(/ /g, '_') // Replace spaces with '_'
-			.replace(/\[|\]/g, '__'); // Replace [ and ] with '__';
+		return this._branchName.replace(/[^A-Za-z0-9]+/g, "-");
 	}
 
 	async isActive() {
