@@ -60,7 +60,9 @@ export class KubernetesAPI {
 	static async WPNginxFlavorsDeployments(namespace: string) {
 		const deployments =  await KubernetesAPI.apps.listNamespacedDeployment({namespace});
 		return deployments.items.filter((dep) =>
-			dep.metadata && dep.metadata.labels && dep.metadata.labels["self-service-flavor"] != '');
+			dep.spec && dep.spec.template && dep.spec.template.metadata && dep.spec.template.metadata.labels &&
+			dep.spec.template.metadata.labels["self-service-flavor"] &&
+			dep.spec.template.metadata.labels["self-service-flavor"] != '');
 	}
 
 	static async getDeploymentsSortedByLastDeployDesc(namespace: string): Promise<Deployment[]> {
@@ -84,7 +86,8 @@ export class KubernetesAPI {
 
 			return {
 				deploymentName: deployment.metadata?.name,
-				flavor: deployment.metadata && deployment.metadata.labels ? deployment.metadata.labels["self-service-flavor"] : '',
+				flavor: deployment.spec && deployment.spec.template && deployment.spec.template.metadata && deployment.spec.template.metadata.labels
+					? deployment.spec.template.metadata.labels["self-service-flavor"] : '',
 				date: latestRs ? latestRs.metadata?.creationTimestamp : null,
 			} as Deployment;
 		});
