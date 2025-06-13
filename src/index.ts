@@ -1,4 +1,4 @@
-import {configLogs, error, info} from "./utils/logger";
+import {configLogs, error, getErrorMessage, info} from "./utils/logger";
 import {Config, loadConfig} from "./utils/configFileReader";
 import {PullRequestInfo} from "./pullRequestInfo";
 import {PipelineRun} from "./utils/piplineRun";
@@ -47,7 +47,7 @@ async function scheduleToDeployment(
 			await pr.createComment(pr.success(`https://${deployment.deploymentName}`))
 			break;
 		} catch (err: any) {
-			console.error(`Failed to schedule to deployment ${deployment.deploymentName}`, err)
+			error(`Failed to schedule to deployment ${deployment.deploymentName}: ${getErrorMessage(err)}`, err)
 			await pr.createComment(pr.fail(err))
 		}
 	}
