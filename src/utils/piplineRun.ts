@@ -69,6 +69,10 @@ export class PipelineRun {
 						{
 							name: 'branch_name',
 							value: pr.branchName()
+						},
+						{
+							name: 'commit_sha',
+							value: [pr.commitSha()]
 						}
 					],
 				workspaces: [
