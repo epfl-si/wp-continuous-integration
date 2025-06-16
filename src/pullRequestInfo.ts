@@ -28,12 +28,12 @@ export class PullRequestInfo {
 	}
 
 	success(buildURL: string): string {
-		return `[wp-continuous-integration] ${this.moniker()} successfully built into ${buildURL}.`; // TODO correct this
+		return `🍍 [wp-continuous-integration] ${this.moniker()}, has successfully built and is available at ${buildURL}.`;
 	}
 
 	fail(reason: any): string {
 		const verbatim = "```"
-		return `[wp-continuous-integration] ${this.moniker()} failed to build: 
+		return `🍍 [wp-continuous-integration] ${this.moniker()}, has failed to build:
 		
 ${verbatim}
 ${reason}
@@ -42,11 +42,11 @@ ${verbatim}
 	}
 
 	skipped(): string {
-		return `[wp-continuous-integration] ${this.moniker()} skipped, because too many PRs were pending.`;
+		return `🍍 [wp-continuous-integration] ${this.moniker()} skipped, because too many PRs were pending.`;
 	}
 
 	moniker(): string {
-		return `Pull Request ${this._number} of ${this._repository} made on branch ${this._branchName} at commit ${this._commitSha}`
+		return `The pull request #${this._number} for [${this._repository}](https://github.com/epfl-si/${this._repository}), submitted on branch [${this._branchName}](https://github.com/epfl-si/${this._repository}/tree/${this._branchName}) at commit ${this._commitSha}`
 	}
 
 	updatedAt() {
