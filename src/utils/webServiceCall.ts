@@ -1,4 +1,3 @@
-import https from 'https';
 import {getAccessToken} from "./jwt";
 import {Config} from "./configFileReader";
 

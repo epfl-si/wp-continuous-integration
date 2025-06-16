@@ -1,5 +1,4 @@
 import {callGitHubAPI} from "./utils/webServiceCall";
-import {error, getErrorMessage} from "./utils/logger";
 import {Config} from "./utils/configFileReader";
 import async from "async";
 

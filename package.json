@@ -1,32 +1,32 @@
 {
-  "name": "wp-continuous-integration",
-  "version": "1.0.0",
-  "description": "WP Continuous Integration for PR images builds with Tekton",
-  "main": "index.js",
-  "scripts": {
-    "start": "npx tsx ./src/index.ts -p ./wp-ci-config.yaml",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/epfl-si/wp-continuous-integration.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/async": "^3.2.24",
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.15.30",
-    "@types/node-fetch": "^2.6.12",
-    "js-yaml": "^4.1.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "@kubernetes/client-node": "^1.3.0",
-    "async": "^3.2.6",
-    "jsonwebtoken": "^9.0.2",
-    "node-cron": "^4.1.0",
-    "node-fetch": "^3.3.2"
-  }
+	"name": "wp-continuous-integration",
+	"version": "1.0.0",
+	"description": "WP Continuous Integration for PR images builds with Tekton",
+	"main": "index.js",
+	"scripts": {
+		"start": "npx tsx ./src/index.ts -p ./wp-ci-config.yaml",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/epfl-si/wp-continuous-integration.git"
+	},
+	"author": "",
+	"license": "ISC",
+	"devDependencies": {
+		"@types/async": "^3.2.24",
+		"@types/js-yaml": "^4.0.9",
+		"@types/node": "^22.15.30",
+		"@types/node-fetch": "^2.6.12",
+		"js-yaml": "^4.1.0",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.8.3"
+	},
+	"dependencies": {
+		"@kubernetes/client-node": "^1.3.0",
+		"async": "^3.2.6",
+		"jsonwebtoken": "^9.0.2",
+		"node-cron": "^4.1.0",
+		"node-fetch": "^3.3.2"
+	}
 }

@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import {error, getErrorMessage} from "./logger";
+import {error} from "./logger";
 
 export interface Config {
-  REPOSITORIES: string[];
-  DEBUG: boolean;
-  NAMESPACE: string;
+	REPOSITORIES: string[];
+	DEBUG: boolean;
+	NAMESPACE: string;
 }
 
 export function loadConfig(configFilePath: any): Config | undefined {
