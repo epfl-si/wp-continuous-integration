@@ -28,12 +28,12 @@ export class PullRequestInfo {
 	}
 
 	success(buildURL: string): string {
-		return `🍍 [wp-continuous-integration] ${this.moniker()}, has successfully built and is available at ${buildURL}.`;
+		return `🍍 ${this.moniker()}, has successfully built and is available at ${buildURL}.`;
 	}
 
 	fail(reason: any): string {
 		const verbatim = "```"
-		return `🍍 [wp-continuous-integration] ${this.moniker()}, has failed to build:
+		return `🍍 ${this.moniker()}, has failed to build:
 		
 ${verbatim}
 ${reason}
@@ -42,7 +42,7 @@ ${verbatim}
 	}
 
 	skipped(): string {
-		return `🍍 [wp-continuous-integration] ${this.moniker()} skipped, because too many PRs were pending.`;
+		return `🍍 ${this.moniker()} skipped, because too many PRs were pending.`;
 	}
 
 	moniker(): string {
@@ -72,10 +72,11 @@ ${verbatim}
 	async isActive() {
 		type BotComment = {
 			body: any,
-			updated_at: string
+			updated_at: string,
+			user: { login: string }
 		}
 		const comments: BotComment[] = await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'GET');
-		const lastBotComments = comments.filter(comment => comment.body.includes('[wp-continuous-integration]'));
+		const lastBotComments = comments.filter(comment => comment.user.login == 'wp-continuous-integration[bot]');
 		if (lastBotComments.length == 0) return true;
 		const comment = lastBotComments.reduce((latest, current) =>
 				new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest);
