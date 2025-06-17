@@ -54,7 +54,8 @@ async function scheduleToDeployment(
 }
 
 let running = false;
-setInterval(async () => {
+
+async function main() {
 	if (!running) {
 		console.log('Running cron job at', new Date().toISOString());
 
@@ -65,4 +66,7 @@ setInterval(async () => {
 			running = false
 		}
 	}
-}, 5 * 60 * 1000);
+}
+
+setInterval(main, 5 * 60 * 1000);
+main()
