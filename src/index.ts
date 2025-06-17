@@ -24,7 +24,7 @@ if (configFileIndex !== -1 && configFileIndex + 1 < args.length) {
 	throw new Error("Config file not specified")
 }
 
-info(`Cron job scheduler started with version ${version}`, {});
+info(`wp-continuous-integration started with version ${version}`, {});
 
 async function scheduleActivePRsToDeployments() {
 	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate(config!);
