@@ -1,6 +1,7 @@
 import {Deployment, KubernetesAPI} from "./kubernetes";
 import {formatDateUTC, randomRFC1123Fragment} from "./utils";
 import {PullRequestInfo} from "../pullRequestInfo";
+import {info} from "./logger";
 
 export class PipelineRun {
 	private _namespace: string;
@@ -104,12 +105,13 @@ export class PipelineRun {
 	}
 
 	async createAndAwaitTektonBuild(pr: PullRequestInfo) {
-			const claimName = await this.createPVC();
-			// TODO pass repo and branch as arguments to pipelinerun for multiple repositories
-			const name = await this.createPipelineRun(claimName, pr);
-			await new Promise(r => setTimeout(r, 60000));
-			await this.waitPipelineRunEnds(name);
-		// TODO delete all PVC in the same fruit
+		info(`Scheduling ${pr.moniker()} into ${this._deployment.deploymentName}`, "")
+		const claimName = await this.createPVC();
+		// TODO pass repo and branch as arguments to pipelinerun for multiple repositories
+		const name = await this.createPipelineRun(claimName, pr);
+		await new Promise(r => setTimeout(r, 60000));
+		await this.waitPipelineRunEnds(name);
+	// TODO delete all PVC in the same fruit
 	}
 
 	async waitPipelineRunEnds(name: string){
