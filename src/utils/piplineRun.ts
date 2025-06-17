@@ -55,8 +55,8 @@ export class PipelineRun {
 				params:
 					[
 						{
-							name: 'next-build-id',
-							value: `${this._deployment.flavor}-${pr.imageMoniker()}`
+							name: 'explicit-stem',
+							value: `${pr.imageMoniker()}`
 						},
 						{
 							name: 'target-deployment',
@@ -67,11 +67,11 @@ export class PipelineRun {
 							value: [pr.repository()]
 						},
 						{
-							name: 'branch_name',
+							name: 'branch-name',
 							value: pr.branchName()
 						},
 						{
-							name: 'commit_sha',
+							name: 'commit-sha',
 							value: [pr.commitSha()]
 						}
 					],
