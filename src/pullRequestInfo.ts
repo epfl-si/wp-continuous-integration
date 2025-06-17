@@ -33,7 +33,7 @@ export class PullRequestInfo {
 
 	fail(reason: any): string {
 		const verbatim = "```"
-		return `🍍 ${this.moniker()}, has failed to build:
+		return `🍍 ${this.moniker()}, failed to build:
 		
 ${verbatim}
 ${reason}
