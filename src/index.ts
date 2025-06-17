@@ -3,7 +3,6 @@ import {Config, loadConfig} from "./utils/configFileReader";
 import {PullRequestInfo} from "./pullRequestInfo";
 import {PipelineRun} from "./utils/piplineRun";
 import {Deployment, KubernetesAPI} from "./utils/kubernetes";
-import cron from 'node-cron';
 
 const args = process.argv.slice(2);
 const configFileIndex = args.findIndex(arg => arg === '-p');
@@ -54,7 +53,16 @@ async function scheduleToDeployment(
 	}
 }
 
-cron.schedule('0/5 * * * *', () => {
-	console.log('Running cron job at', new Date().toISOString());
-	scheduleActivePRsToDeployments();
-});
+let running = false;
+setInterval(async () => {
+	if (!running) {
+		console.log('Running cron job at', new Date().toISOString());
+
+		running = true
+		try {
+			await scheduleActivePRsToDeployments();
+		} finally {
+			running = false
+		}
+	}
+}, 5 * 60 * 1000);
