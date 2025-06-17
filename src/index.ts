@@ -44,7 +44,7 @@ async function scheduleToDeployment(
 		if (!pr) break;
 		try {
 			await (new PipelineRun(namespace, deployment, pr!)).createAndAwaitTektonBuild(pr);
-			await pr.createComment(pr.success(`https://${deployment.deploymentName}`))
+			await pr.createComment(pr.success(`https://wp-test-${deployment.flavor}.epfl.ch`))
 			break;
 		} catch (err: any) {
 			error(`Failed to schedule to deployment ${deployment.deploymentName}: ${getErrorMessage(err)}`, err)
