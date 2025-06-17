@@ -28,21 +28,20 @@ async function getInstallationId(config: Config, jwtToken: string) {
 export async function getAccessToken(config: Config) {
 	const now = Math.floor(Date.now() / 1000);
 	if ( _token && _tokenExpiration && now < _tokenExpiration - 60 ) {
-		console.log("🔐 Token still valid");
 		// Token is still valid (with a 60s buffer)
 		return _token;
 	}
 	console.log("🔐 Token expired. Generating a new token");
 
 	// Generate new token
-	console.log("🔐 Génération du JWT...");
+	console.log("🔐 Creating new JWT...");
 	const jwtToken = await generateJWT(config);
 
-	console.log("📥 Récupération de l'installation ID...");
+	console.log("📥 Retrieve installation ID...");
 	const installationId = await getInstallationId(config, jwtToken);
 	console.log(`✅ installation_id = ${installationId}`);
 
-	console.log("🔑 Demande du token d'installation...");
+	console.log("🔑 Obtain installation token...");
 	const res: any = await callGitHubAPI(config, `/app/installations/${installationId}/access_tokens`, 'POST', jwtToken)
 	_token = res.token;
 	const expiresAt = new Date(res.expires_at).getTime() / 1000; // convert to seconds
