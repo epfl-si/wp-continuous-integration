@@ -66,7 +66,7 @@ ${verbatim}
 	}
 
 	imageMoniker() {
-		return this._branchName.replace(/[^A-Za-z0-9]+/g, "-");
+		return this._branchName.replace(/[^A-Za-z0-9]+/g, "-").toLowerCase().substring(0, 125);
 	}
 
 	async isActive() {
