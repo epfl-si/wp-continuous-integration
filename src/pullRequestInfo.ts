@@ -28,11 +28,11 @@ export class PullRequestInfo {
 	}
 
 	success(buildURL: string): string {
-		return `${this.moniker()}, has successfully built and is available at ${buildURL}.`;
+		return `The ${this.moniker()}, has successfully built and is available at ${buildURL}.`;
 	}
 
 	fail(reason: any): string {
-		return `${this.moniker()}, failed to build.
+		return `The ${this.moniker()}, failed to build.
 <details>
 <summary>Error details</summary>
 <pre>
@@ -43,11 +43,11 @@ ${reason}
 	}
 
 	skipped(): string {
-		return `${this.moniker()} skipped, because too many PRs were pending.`;
+		return `The ${this.moniker()} was skipped, because too many other PRs were pending.`;
 	}
 
 	moniker(): string {
-		return `The pull request #${this._number} for [${this._repository}](https://github.com/epfl-si/${this._repository}), submitted on branch [${this._branchName}](https://github.com/epfl-si/${this._repository}/tree/${this._branchName}) at commit ${this._commitSha}`
+		return `pull request #${this._number} for [${this._repository}](https://github.com/epfl-si/${this._repository}), submitted on branch [${this._branchName}](https://github.com/epfl-si/${this._repository}/tree/${this._branchName}) at commit ${this._commitSha}`
 	}
 
 	updatedAt() {
