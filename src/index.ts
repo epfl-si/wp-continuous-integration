@@ -44,6 +44,7 @@ async function scheduleToDeployment(
 		const callSign = (deployment.fruit || '🍍') + ' ';
 		if (!pr) break;
 		try {
+			console.log(callSign + 'Scheduling...');
 			await (new PipelineRun(namespace, deployment, pr!)).createAndAwaitTektonBuild(pr);
 			await pr.createComment(callSign + pr.success(`https://wp-test-${deployment.flavor}.epfl.ch`))
 			break;
