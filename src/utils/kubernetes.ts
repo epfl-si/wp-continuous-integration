@@ -9,6 +9,7 @@ const k8s = require('@kubernetes/client-node');
 export type Deployment = {
 	deploymentName: string,
 	flavor: string,
+	fruit: string,
 	date: Date
 };
 
@@ -88,6 +89,8 @@ export class KubernetesAPI {
 				deploymentName: deployment.metadata?.name,
 				flavor: deployment.spec && deployment.spec.template && deployment.spec.template.metadata && deployment.spec.template.metadata.labels
 					? deployment.spec.template.metadata.labels["self-service-flavor"] : '',
+				fruit: deployment.metadata && deployment.metadata.annotations
+					? deployment.metadata.annotations["self-service-fruit"] : '',
 				date: latestRs ? latestRs.metadata?.creationTimestamp : null,
 			} as Deployment;
 		});

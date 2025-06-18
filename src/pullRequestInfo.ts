@@ -28,21 +28,22 @@ export class PullRequestInfo {
 	}
 
 	success(buildURL: string): string {
-		return `🍍 ${this.moniker()}, has successfully built and is available at ${buildURL}.`;
+		return `${this.moniker()}, has successfully built and is available at ${buildURL}.`;
 	}
 
 	fail(reason: any): string {
-		const verbatim = "```"
-		return `🍍 ${this.moniker()}, failed to build:
-		
-${verbatim}
+		return `${this.moniker()}, failed to build.
+<details>
+<summary>Error details</summary>
+<pre>
 ${reason}
-${verbatim}
+</pre>
+</details>
 		`;
 	}
 
 	skipped(): string {
-		return `🍍 ${this.moniker()} skipped, because too many PRs were pending.`;
+		return `${this.moniker()} skipped, because too many PRs were pending.`;
 	}
 
 	moniker(): string {

@@ -31,7 +31,7 @@ async function scheduleActivePRsToDeployments() {
 	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc(config!.NAMESPACE);
 	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests)))
 	for (const pr of pullRequests) {
-		await pr.createComment(pr.skipped())
+		await pr.createComment('🍍 ' + pr.skipped())
 	}
 }
 
@@ -41,14 +41,15 @@ async function scheduleToDeployment(
 	pullRequests: PullRequestInfo[]) {
 	while(true) {
 		const pr = pullRequests.shift();
+		const callSign = (deployment.fruit || '🍍') + ' ';
 		if (!pr) break;
 		try {
 			await (new PipelineRun(namespace, deployment, pr!)).createAndAwaitTektonBuild(pr);
-			await pr.createComment(pr.success(`https://wp-test-${deployment.flavor}.epfl.ch`))
+			await pr.createComment(callSign + pr.success(`https://wp-test-${deployment.flavor}.epfl.ch`))
 			break;
 		} catch (err: any) {
 			error(`Failed to schedule to deployment ${deployment.deploymentName}: ${getErrorMessage(err)}`, err)
-			await pr.createComment(pr.fail(err))
+			await pr.createComment(callSign + pr.fail(err))
 		}
 	}
 }
