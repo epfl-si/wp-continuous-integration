@@ -64,10 +64,6 @@ export class PipelineRun {
 							value: `${this._deployment.deploymentName}`
 						},
 						{
-							name: 'repos',
-							value: [pr.repository()]
-						},
-						{
 							name: 'branch-name',
 							value: pr.branchName()
 						},
