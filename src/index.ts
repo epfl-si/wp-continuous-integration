@@ -28,8 +28,9 @@ info(`wp-continuous-integration started with version ${version}`, {});
 
 async function scheduleActivePRsToDeployments() {
 	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate(config!);
+	const expiredPullRequests = await PullRequestInfo.getExpiredPRs(config!);
 	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc(config!.NAMESPACE);
-	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests)))
+	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests, expiredPullRequests)))
 	for (const pr of pullRequests) {
 		await pr.createComment('🍍 ' + pr.skipped())
 	}
@@ -38,7 +39,8 @@ async function scheduleActivePRsToDeployments() {
 async function scheduleToDeployment(
 	namespace: string,
 	deployment: Deployment,
-	pullRequests: PullRequestInfo[]) {
+	pullRequests: PullRequestInfo[],
+	expiredPR: PullRequestInfo[]) {
 	while(true) {
 		// Get all PRs where the branch name is the same of the `epfl/built-from-branch` annotation in the deployment
 		const pullRequestToRebuild = pullRequests.filter(pr => pr.branchName() == deployment.builtFromBranch);
@@ -67,6 +69,16 @@ async function scheduleToDeployment(
 				await pr.createComment(callSign + pr.success(buildUrl))
 			}
 
+			// All PRs successfully built in this deployment but on another branch is expired
+			const expPR = expiredPR.filter(p =>
+				p.lastBotComment() &&
+				p.lastBotComment() != null &&
+				p.lastBotComment()?.body!.indexOf(buildUrl) > -1 &&
+				p.branchName() != pullRequestToRebuild[0].branchName()
+			)
+			for ( const epr of expPR ) {
+				await epr.createComment('🍍' + epr.expired());
+			}
 			break;
 		} catch (err: any) {
 			error(`Failed to schedule to deployment ${deployment.deploymentName}: ${getErrorMessage(err)}`, err)

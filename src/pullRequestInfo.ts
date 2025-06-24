@@ -2,6 +2,12 @@ import {callGitHubAPI} from "./utils/webServiceCall";
 import {Config} from "./utils/configFileReader";
 import async from "async";
 
+type BotComment = {
+	body: any,
+	updated_at: string,
+	user: { login: string }
+}
+
 export class PullRequestInfo {
 	private _repository: string;
 	private _id: number;
@@ -13,8 +19,9 @@ export class PullRequestInfo {
 	private _branchName: string; //head ref
 	private _commitSha: string; //head sha
 	private _config: Config;
+	private _lastBotComment: BotComment | null;
 
-	constructor(opts: {config: Config, repository: string, id: number, url: string, number: number, title: string, userLogin: string, updatedAt: Date, branchName: string, commitSha: string}) {
+	constructor(opts: {config: Config, repository: string, id: number, url: string, number: number, title: string, userLogin: string, updatedAt: Date, branchName: string, commitSha: string, lastBotComment: BotComment | null}) {
 		this._id = opts.id;
 		this._url = opts.url;
 		this._number = opts.number;
@@ -25,6 +32,7 @@ export class PullRequestInfo {
 		this._commitSha = opts.commitSha;
 		this._repository = opts.repository;
 		this._config = opts.config;
+		this._lastBotComment = opts.lastBotComment
 	}
 
 	success(buildURL: string): string {
@@ -44,6 +52,11 @@ ${reason}
 
 	skipped(): string {
 		return `The ${this.moniker()} was skipped, because too many other PRs were pending.`;
+	}
+
+	expired(): string {
+		console.log(this.moniker());
+		return `The ${this.moniker()} is expired.`;
 	}
 
 	moniker(): string {
@@ -66,44 +79,68 @@ ${reason}
 		return this._branchName;
 	}
 
+	lastBotComment() {
+		return this._lastBotComment;
+	}
+
 	imageMoniker() {
 		return this._branchName.replace(/[^A-Za-z0-9]+/g, "-").toLowerCase().substring(0, 125);
 	}
 
 	async isActive() {
-		type BotComment = {
-			body: any,
-			updated_at: string,
-			user: { login: string }
-		}
+		//A PR is active if there are no bot comments or if the SHA in the last comment is not the same of the current SHA
+		const lastBotComments = this.lastBotComment();
+		if (lastBotComments == null) return true;
+		return lastBotComments?.body?.indexOf(this.commitSha()) == -1;
+	}
+
+	async isExpired() {
+		//A PR is expired if the SHA of the bot comment is the same of the current SHA and it was successfully built
+		const lastBotComments = this.lastBotComment();
+		if (lastBotComments == null) return false;
+		return lastBotComments?.body?.indexOf(this.commitSha()) > -1 && lastBotComments?.body?.indexOf("has successfully built and is available") > -1;
+	}
+
+	async getLastBotComment() {
 		const comments: BotComment[] = await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'GET');
 		const lastBotComments = comments.filter(comment => comment.user.login == 'wp-continuous-integration[bot]');
-		if (lastBotComments.length == 0) return true;
-		const comment = lastBotComments.reduce((latest, current) =>
-				new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest);
-		return comment?.body?.indexOf(this.commitSha()) == -1;
+		if (lastBotComments.length == 0) return null;
+		return lastBotComments.reduce((latest, current) =>
+			new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest);
 	}
 
 	async createComment(message: string){
 		await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'POST', undefined, {body: message});
 	}
 
-	static async getPullRequestsByRepo(config: Config, repo: string) {
-		return await callGitHubAPI<any[]>(config, `/repos/epfl-si/${repo}/pulls?state=open`, 'GET');
-	}
-
-	static async getAvailablePRsSortedByDate(config: Config) {
+	static async getPullRequests(config: Config) {
 		const pullRequests: PullRequestInfo[] = [];
 		const inventory = config.REPOSITORIES.filter(Boolean);
 		for ( const repository of inventory ) {
-			const list = await this.getPullRequestsByRepo(config, repository);
+			const list = await callGitHubAPI<any[]>(config, `/repos/epfl-si/${repository}/pulls?state=open`, 'GET');
 			for ( const pr of list ) {
 				const pri = new PullRequestInfo({config, repository, id: pr.id, url: pr.url, number: pr.number, title: pr.title,
-					userLogin: pr.user.login, updatedAt: pr.updated_at, branchName: pr.head.ref, commitSha: pr.head.sha});
+					userLogin: pr.user.login, updatedAt: pr.updated_at, branchName: pr.head.ref, commitSha: pr.head.sha, lastBotComment: null});
 				pullRequests.push(pri)
 			}
 		}
+		const prs: PullRequestInfo[] = [];
+		for ( const pr of pullRequests ) {
+			const message = await pr.getLastBotComment();
+			prs.push(new PullRequestInfo({config, repository: pr._repository, id: pr._id, url: pr._url, number: pr._number, title: pr._title,
+				userLogin: pr._userLogin, updatedAt: pr._updatedAt, branchName: pr._branchName, commitSha: pr._commitSha, lastBotComment: message}));
+		}
+		return prs;
+	}
+
+	static async getAvailablePRsSortedByDate(config: Config) {
+		const pullRequests: PullRequestInfo[] = await this.getPullRequests(config);
 		const activePullRequests = await async.filter(pullRequests, async (pr) => pr.isActive());
 		return activePullRequests.sort((a, b) => new Date(a.updatedAt()).getTime() - new Date(b.updatedAt()).getTime());
+	}
+
+	static async getExpiredPRs(config: Config) {
+		const pullRequests: PullRequestInfo[] = await this.getPullRequests(config);
+		return await async.filter(pullRequests, async (pr) => pr.isExpired());
 	}
 }
