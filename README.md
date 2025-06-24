@@ -2,7 +2,9 @@
 WP Continuous Integration for PR images builds with Tekton
 
 ## Local
-`npm start`
+- For the first time, do `npm install`
+- Connect to OpenShift
+- `npm start`
 
 ## To deploy a new version
 From wp-ops: `wpsible -t wp.continuous-integration.rebuild`
