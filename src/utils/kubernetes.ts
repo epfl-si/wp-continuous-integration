@@ -10,7 +10,8 @@ export type Deployment = {
 	deploymentName: string,
 	flavor: string,
 	fruit: string,
-	date: Date
+	date: Date,
+	builtFromBranch: string
 };
 
 export class KubernetesAPI {
@@ -92,6 +93,8 @@ export class KubernetesAPI {
 				fruit: deployment.metadata && deployment.metadata.annotations
 					? deployment.metadata.annotations["self-service-fruit"] : '',
 				date: latestRs ? latestRs.metadata?.creationTimestamp : null,
+				builtFromBranch: deployment.spec && deployment.spec.template && deployment.spec.template.metadata && deployment.spec.template.metadata.annotations
+					? deployment.spec.template.metadata.annotations["epfl/built-from-branch"] : '',
 			} as Deployment;
 		});
 		return deployments.sort((a, b) => a.date.getTime() - b.date.getTime());
