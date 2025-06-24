@@ -50,6 +50,10 @@ export class PipelineRun {
 				taskRunTemplate: {
 					serviceAccountName: 'pipeline'
 				},
+				taskRunSpecs: [{
+					pipelineTaskName: "prep",
+					serviceAccountName: "default"
+				}],
 				pipelineRef: {
 					name: `wp-base-build`,
 				},
