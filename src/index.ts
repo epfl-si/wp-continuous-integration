@@ -62,8 +62,6 @@ async function scheduleToDeployment(
 				}
 			}
 			console.log(callSign + 'Scheduling...');
-			await (new PipelineRun(namespace, deployment, pr!)).createAndAwaitTektonBuild(pr);
-			await pr.createComment(callSign + pr.success(`https://wp-test-${deployment.flavor}.epfl.ch`))
 			await (new PipelineRun(namespace, deployment, pullRequestToRebuild!)).createAndAwaitTektonBuild();
 			for ( const pr of pullRequestToRebuild ) {
 				await pr.createComment(callSign + pr.success(buildUrl))
