@@ -3,6 +3,18 @@ import {formatDateUTC, randomRFC1123Fragment} from "./utils";
 import {PullRequestInfo} from "../pullRequestInfo";
 import {info} from "./logger";
 
+const getFlagValue = (flag: string): string | undefined => {
+  const args = process.argv.slice(2);
+  const flagIndex = args.indexOf(`--${flag}`);
+  if (flagIndex !== -1 && args.length > flagIndex + 1) {
+    const next = args[flagIndex + 1];
+    if (!next.startsWith('-')) {
+      return next;
+    }
+  }
+  return undefined;
+};
+
 export class PipelineRun {
 	private _namespace: string;
 	private _deployment: Deployment;
@@ -48,11 +60,11 @@ export class PipelineRun {
 			},
 			spec: {
 				taskRunTemplate: {
-					serviceAccountName: 'pipeline'
+					serviceAccountName: getFlagValue("privileged-service-account") || "pipeline"
 				},
 				taskRunSpecs: [{
 					pipelineTaskName: "prep",
-					serviceAccountName: "default"
+					serviceAccountName: getFlagValue("unprivileged-service-account") || "wp-base-builder"
 				}],
 				pipelineRef: {
 					name: `wp-base-build`,
