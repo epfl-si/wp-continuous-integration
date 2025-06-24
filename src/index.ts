@@ -55,7 +55,7 @@ async function scheduleToDeployment(
 		if (pullRequestToRebuild.length == 0) break;
 
 		const callSign = (deployment.fruit || '🍍') + ' ';
-		if (!pr) break;
+		const buildUrl = `https://wp-test-${deployment.flavor}.epfl.ch`;
 		try {
 			// Remove all items where `name === pullRequestToRebuild[0].branchName()`
 			for (let i = pullRequests.length - 1; i >= 0; i--) {
