@@ -18,9 +18,9 @@ const getFlagValue = (flag: string): string | undefined => {
 export class PipelineRun {
 	private _namespace: string;
 	private _deployment: Deployment;
-	private _pullRequest: PullRequestInfo;
+	private _pullRequest: PullRequestInfo[];
 
-	constructor(namespace: string, deployment: Deployment, pr: PullRequestInfo) {
+	constructor(namespace: string, deployment: Deployment, pr: PullRequestInfo[]) {
 		this._deployment = deployment;
 		this._namespace = namespace;
 		this._pullRequest = pr;
@@ -49,7 +49,7 @@ export class PipelineRun {
 		return claimName;
 	}
 
-	async createPipelineRun(claimName: string, pr: PullRequestInfo) {
+	async createPipelineRun(claimName: string) {
 		const name = `wp-base-build-${this._deployment.flavor}-${formatDateUTC()}`;
 		const pipelinerun = {
 			apiVersion: 'tekton.dev/v1',
@@ -73,7 +73,7 @@ export class PipelineRun {
 					[
 						{
 							name: 'explicit-stem',
-							value: `${pr.imageMoniker()}`
+							value: `${this._pullRequest[0].imageMoniker()}`
 						},
 						{
 							name: 'target-deployment',
@@ -81,11 +81,11 @@ export class PipelineRun {
 						},
 						{
 							name: 'branch-name',
-							value: pr.branchName()
+							value: this._pullRequest[0].branchName()
 						},
 						{
 							name: 'commit-sha',
-							value: [pr.commitSha()]
+							value: [this._pullRequest.map(pr => pr.commitSha())]
 						}
 					],
 				workspaces: [
@@ -116,11 +116,11 @@ export class PipelineRun {
 		return name;
 	}
 
-	async createAndAwaitTektonBuild(pr: PullRequestInfo) {
-		info(`Scheduling ${pr.moniker()} into ${this._deployment.deploymentName}`, "")
+	async createAndAwaitTektonBuild() {
+		const monikers = this._pullRequest.map(pr => pr.moniker());
+		info(`Scheduling \n${monikers.join('\n')} \ninto ${this._deployment.deploymentName}`, "")
 		const claimName = await this.createPVC();
-		// TODO pass repo and branch as arguments to pipelinerun for multiple repositories
-		const name = await this.createPipelineRun(claimName, pr);
+		const name = await this.createPipelineRun(claimName);
 		await new Promise(r => setTimeout(r, 60000));
 		await this.waitPipelineRunEnds(name);
 	// TODO delete all PVC in the same fruit

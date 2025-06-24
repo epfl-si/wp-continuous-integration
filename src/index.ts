@@ -40,17 +40,41 @@ async function scheduleToDeployment(
 	deployment: Deployment,
 	pullRequests: PullRequestInfo[]) {
 	while(true) {
-		const pr = pullRequests.shift();
+		// Get all PRs where the branch name is the same of the `epfl/built-from-branch` annotation in the deployment
+		const pullRequestToRebuild = pullRequests.filter(pr => pr.branchName() == deployment.builtFromBranch);
+		if (pullRequestToRebuild.length == 0) {
+			const firstAvailablePR = pullRequests.shift();
+			if (firstAvailablePR) {
+				pullRequestToRebuild.push(firstAvailablePR);
+				const filteredPR = pullRequests.filter(pr => pr.branchName() == firstAvailablePR.branchName());
+				pullRequestToRebuild.push(...filteredPR);
+			}
+		}
+		if (pullRequestToRebuild.length == 0) break;
+
 		const callSign = (deployment.fruit || '🍍') + ' ';
 		if (!pr) break;
 		try {
+			// Remove all items where `name === pullRequestToRebuild[0].branchName()`
+			for (let i = pullRequests.length - 1; i >= 0; i--) {
+				if (pullRequests[i].branchName() === pullRequestToRebuild[0].branchName()) {
+					pullRequests.splice(i, 1);
+				}
+			}
 			console.log(callSign + 'Scheduling...');
 			await (new PipelineRun(namespace, deployment, pr!)).createAndAwaitTektonBuild(pr);
 			await pr.createComment(callSign + pr.success(`https://wp-test-${deployment.flavor}.epfl.ch`))
+			await (new PipelineRun(namespace, deployment, pullRequestToRebuild!)).createAndAwaitTektonBuild();
+			for ( const pr of pullRequestToRebuild ) {
+				await pr.createComment(callSign + pr.success(buildUrl))
+			}
+
 			break;
 		} catch (err: any) {
 			error(`Failed to schedule to deployment ${deployment.deploymentName}: ${getErrorMessage(err)}`, err)
-			await pr.createComment(callSign + pr.fail(err))
+			for ( const pr of pullRequestToRebuild ) {
+				await pr.createComment(callSign + pr.fail(err));
+			}
 		}
 	}
 }
