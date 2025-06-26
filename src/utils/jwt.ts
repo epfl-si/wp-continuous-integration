@@ -8,7 +8,7 @@ let _token: string | undefined;
 let _tokenExpiration: number | undefined;
 
 async function generateJWT(config:Config) {
-	const secretData = await KubernetesAPI.readSecret(config.NAMESPACE,'wp-ci-github-app-secrets') as {PRIVATE_KEY: string, APP_ID: string};
+	const secretData = await KubernetesAPI.readSecret(config.NAMESPACE,'wp-ci-github') as {PRIVATE_KEY: string, APP_ID: string};
 	const now = Math.floor(Date.now() / 1000);
 	const payload = {
 		iat: now - 60,
