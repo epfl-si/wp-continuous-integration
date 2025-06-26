@@ -85,7 +85,7 @@ export class PipelineRun {
 						},
 						{
 							name: 'commit-sha',
-							value: [this._pullRequest.map(pr => pr.commitSha())]
+							value: this._pullRequest.map(pr => `${pr.repository()}: ${pr.commitSha()}`).join(', ')
 						}
 					],
 				workspaces: [
