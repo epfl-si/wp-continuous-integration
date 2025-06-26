@@ -30,7 +30,8 @@ async function scheduleActivePRsToDeployments() {
 	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate(config!);
 	const expiredPullRequests = await PullRequestInfo.getExpiredPRs(config!);
 	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc(config!.NAMESPACE);
-	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests, expiredPullRequests)))
+	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests, [], deployments, true)));
+	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests, expiredPullRequests, deployments, false)));
 	for (const pr of pullRequests) {
 		await pr.createComment('🍍 ' + pr.skipped())
 	}
@@ -40,18 +41,11 @@ async function scheduleToDeployment(
 	namespace: string,
 	deployment: Deployment,
 	pullRequests: PullRequestInfo[],
-	expiredPR: PullRequestInfo[]) {
+	expiredPR: PullRequestInfo[],
+	deployments: Deployment[],
+	checkFlavor: boolean) {
 	while(true) {
-		// Get all PRs where the branch name is the same of the `epfl/built-from-branch` annotation in the deployment
-		const pullRequestToRebuild = pullRequests.filter(pr => pr.branchName() == deployment.builtFromBranch);
-		if (pullRequestToRebuild.length == 0) {
-			const firstAvailablePR = pullRequests.shift();
-			if (firstAvailablePR) {
-				pullRequestToRebuild.push(firstAvailablePR);
-				const filteredPR = pullRequests.filter(pr => pr.branchName() == firstAvailablePR.branchName());
-				pullRequestToRebuild.push(...filteredPR);
-			}
-		}
+		const pullRequestToRebuild: PullRequestInfo[] = getPullRequestToRebuild(checkFlavor, pullRequests, deployment);
 		if (pullRequestToRebuild.length == 0) break;
 
 		const callSign = (deployment.fruit || '🍍') + ' ';
@@ -68,16 +62,15 @@ async function scheduleToDeployment(
 			for ( const pr of pullRequestToRebuild ) {
 				await pr.createComment(callSign + pr.success(buildUrl))
 			}
-
-			// All PRs successfully built in this deployment but on another branch is expired
-			const expPR = expiredPR.filter(p =>
-				p.lastBotComment() &&
-				p.lastBotComment() != null &&
-				p.lastBotComment()?.body!.indexOf(buildUrl) > -1 &&
-				p.branchName() != pullRequestToRebuild[0].branchName()
-			)
-			for ( const epr of expPR ) {
-				await epr.createComment('🍍' + epr.expired());
+			if (!checkFlavor) {
+				await createExpireCommentForPRs(expiredPR, buildUrl, pullRequestToRebuild[0].branchName());
+			} else {
+				// Remove deployment built on its same branch from available deployments
+				for (let i = deployments.length - 1; i >= 0; i--) {
+					if (deployments[i].deploymentName === deployment.deploymentName) {
+						deployments.splice(i, 1);
+					}
+				}
 			}
 			break;
 		} catch (err: any) {
@@ -86,6 +79,35 @@ async function scheduleToDeployment(
 				await pr.createComment(callSign + pr.fail(err));
 			}
 		}
+	}
+}
+
+function getPullRequestToRebuild(checkFlavor: boolean, pullRequests: PullRequestInfo[], deployment: Deployment) {
+	// Get all PRs where the branch name is the same of the `epfl/built-from-branch` annotation in the deployment
+	const pullRequestToRebuild: PullRequestInfo[] = [];
+	if (checkFlavor) {
+		const prs = pullRequests.filter(pr => pr.branchName() == deployment.builtFromBranch);
+		pullRequestToRebuild.push(...prs);
+	} else {
+		const firstAvailablePR = pullRequests.shift();
+		if (firstAvailablePR) {
+			pullRequestToRebuild.push(firstAvailablePR);
+			const filteredPR = pullRequests.filter(pr => pr.branchName() == firstAvailablePR.branchName());
+			pullRequestToRebuild.push(...filteredPR);
+		}
+	}
+	return pullRequestToRebuild;
+}
+async function createExpireCommentForPRs(expiredPR: PullRequestInfo[], buildUrl: string, deploymentBranchName: string) {
+	// All PRs successfully built in this deployment but on another branch is expired
+	const expPR = expiredPR.filter(p =>
+		p.lastBotComment() &&
+		p.lastBotComment() != null &&
+		p.lastBotComment()?.body!.indexOf(buildUrl) > -1 &&
+		p.branchName() != deploymentBranchName
+	)
+	for ( const epr of expPR ) {
+		await epr.createComment('🍍' + epr.expired());
 	}
 }
 
