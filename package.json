@@ -1,6 +1,6 @@
 {
 	"name": "wp-continuous-integration",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "WP Continuous Integration for PR images builds with Tekton",
 	"main": "index.js",
 	"scripts": {
