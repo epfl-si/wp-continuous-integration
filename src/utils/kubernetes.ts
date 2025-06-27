@@ -99,4 +99,23 @@ export class KubernetesAPI {
 		});
 		return deployments.sort((a, b) => a.date.getTime() - b.date.getTime());
 	}
+
+	static async deletePersistentVolumeClaimByFlavor(namespace: string, flavor: string, exceptClaimName: string) {
+		const regex = new RegExp(`^tekton-scratch-[A-Za-z0-9]{5}-${flavor}$`);
+		const pvcList = await KubernetesAPI.core.listNamespacedPersistentVolumeClaim({namespace});
+		const filteredPVC = pvcList.items.filter(vol => vol.metadata && regex.test(vol.metadata.name || '') && vol.metadata.name != exceptClaimName);
+		for ( const p of filteredPVC ) {
+			const name = p.metadata?.name;
+			if (name) await KubernetesAPI.core.deleteNamespacedPersistentVolumeClaim({name, namespace})
+		}
+	}
+
+	static async deletePipelinePodsByFlavor(namespace: string, flavor: string, exceptCurrentPipelineName: string) {
+		const pods = await KubernetesAPI.core.listNamespacedPod({namespace});
+		const filteredPods = pods.items.filter(p => p.metadata && p.metadata.name?.startsWith(`wp-base-build-${flavor}-`) && !p.metadata.name?.startsWith(exceptCurrentPipelineName));
+		for ( const p of filteredPods ) {
+			const name = p.metadata?.name;
+			if (name) await KubernetesAPI.core.deleteNamespacedPod({name, namespace})
+		}
+	}
 }
