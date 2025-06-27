@@ -119,7 +119,8 @@ export class PipelineRun {
 		const name = await this.createPipelineRun(claimName);
 		await new Promise(r => setTimeout(r, 60000));
 		await this.waitPipelineRunEnds(name);
-	// TODO delete all PVC in the same fruit
+		await KubernetesAPI.deletePipelinePodsByFlavor(this._namespace, this._deployment.flavor, name)
+		await KubernetesAPI.deletePersistentVolumeClaimByFlavor(this._namespace, this._deployment.flavor, claimName);
 	}
 
 	async waitPipelineRunEnds(name: string){
