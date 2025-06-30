@@ -20,5 +20,6 @@ REPOSITORIES:
   - wp-plugin-epfl-translate
   - wp-plugin-epfl-menus
   - wp-plugin-pushgateway
+  - wp-ops
 DEBUG: false
 NAMESPACE: "svc0041t-wordpress"
