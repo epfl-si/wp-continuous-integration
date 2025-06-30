@@ -52,7 +52,7 @@ async function scheduleToDeployment(
 				await pr.createComment(callSign + pr.success(buildUrl))
 			}
 			if (!checkFlavor) {
-				await createExpireCommentForPRs(expiredPR, buildUrl, pullRequestsToRebuild[0].branchName());
+				await markPRExpiredInComments(expiredPR, buildUrl, pullRequestsToRebuild[0].branchName());
 			} else {
 				// Remove deployment built on its same branch from available deployments
 				for (let i = deployments.length - 1; i >= 0; i--) {
@@ -88,7 +88,7 @@ function getPullRequestToRebuild(checkFlavor: boolean, pullRequests: PullRequest
 	return pullRequestsToRebuild;
 }
 
-async function createExpireCommentForPRs(expiredPR: PullRequestInfo[], buildUrl: string, deploymentBranchName: string) {
+async function markPRExpiredInComments(expiredPR: PullRequestInfo[], buildUrl: string, deploymentBranchName: string) {
 	// All PRs successfully built in this deployment but on another branch is expired
 	const expPR = expiredPR.filter(p =>
 		p.lastBotComment() &&
