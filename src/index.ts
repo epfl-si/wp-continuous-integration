@@ -31,25 +31,25 @@ async function scheduleToDeployment(
 	deployments: Deployment[],
 	checkFlavor: boolean) {
 	while(true) {
-		const pullRequestToRebuild: PullRequestInfo[] = getPullRequestToRebuild(checkFlavor, pullRequests, deployment);
-		if (pullRequestToRebuild.length == 0) break;
+		const pullRequestsToRebuild: PullRequestInfo[] = getPullRequestToRebuild(checkFlavor, pullRequests, deployment);
+		if (pullRequestsToRebuild.length == 0) break;
 
 		const callSign = (deployment.fruit || '🍍') + ' ';
 		const buildUrl = `https://wp-test-${deployment.flavor}.epfl.ch`;
 		try {
-			// Remove all items where `name === pullRequestToRebuild[0].branchName()`
+			// Remove all items where `name === pullRequestsToRebuild[0].branchName()`
 			for (let i = pullRequests.length - 1; i >= 0; i--) {
-				if (pullRequests[i].branchName() === pullRequestToRebuild[0].branchName()) {
+				if (pullRequests[i].branchName() === pullRequestsToRebuild[0].branchName()) {
 					pullRequests.splice(i, 1);
 				}
 			}
 			console.log(callSign + 'Scheduling...');
-			await (new PipelineRun(namespace, deployment, pullRequestToRebuild!)).createAndAwaitTektonBuild();
-			for ( const pr of pullRequestToRebuild ) {
+			await (new PipelineRun(namespace, deployment, pullRequestsToRebuild!)).createAndAwaitTektonBuild();
+			for ( const pr of pullRequestsToRebuild ) {
 				await pr.createComment(callSign + pr.success(buildUrl))
 			}
 			if (!checkFlavor) {
-				await createExpireCommentForPRs(expiredPR, buildUrl, pullRequestToRebuild[0].branchName());
+				await createExpireCommentForPRs(expiredPR, buildUrl, pullRequestsToRebuild[0].branchName());
 			} else {
 				// Remove deployment built on its same branch from available deployments
 				for (let i = deployments.length - 1; i >= 0; i--) {
@@ -61,7 +61,7 @@ async function scheduleToDeployment(
 			break;
 		} catch (err: any) {
 			error(`Failed to schedule to deployment ${deployment.deploymentName}: ${getErrorMessage(err)}`, err)
-			for ( const pr of pullRequestToRebuild ) {
+			for ( const pr of pullRequestsToRebuild ) {
 				await pr.createComment(callSign + pr.fail(err));
 			}
 		}
@@ -70,19 +70,19 @@ async function scheduleToDeployment(
 
 function getPullRequestToRebuild(checkFlavor: boolean, pullRequests: PullRequestInfo[], deployment: Deployment) {
 	// Get all PRs where the branch name is the same of the `epfl/built-from-branch` annotation in the deployment
-	const pullRequestToRebuild: PullRequestInfo[] = [];
+	const pullRequestsToRebuild: PullRequestInfo[] = [];
 	if (checkFlavor) {
 		const prs = pullRequests.filter(pr => pr.branchName() == deployment.builtFromBranch);
-		pullRequestToRebuild.push(...prs);
+		pullRequestsToRebuild.push(...prs);
 	} else {
 		const firstAvailablePR = pullRequests.shift();
 		if (firstAvailablePR) {
-			pullRequestToRebuild.push(firstAvailablePR);
+			pullRequestsToRebuild.push(firstAvailablePR);
 			const filteredPR = pullRequests.filter(pr => pr.branchName() == firstAvailablePR.branchName());
-			pullRequestToRebuild.push(...filteredPR);
+			pullRequestsToRebuild.push(...filteredPR);
 		}
 	}
-	return pullRequestToRebuild;
+	return pullRequestsToRebuild;
 }
 
 async function createExpireCommentForPRs(expiredPR: PullRequestInfo[], buildUrl: string, deploymentBranchName: string) {
