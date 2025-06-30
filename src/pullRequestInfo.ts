@@ -135,12 +135,12 @@ ${reason}
 
 	static async getAvailablePRsSortedByDate(config: Config) {
 		const pullRequests: PullRequestInfo[] = await this.getPullRequests(config);
-		const activePullRequests = await async.filter(pullRequests, async (pr) => pr.isActive());
+		const activePullRequests = await async.filter(pullRequests, async (pr) => await pr.isActive());
 		return activePullRequests.sort((a, b) => new Date(a.updatedAt()).getTime() - new Date(b.updatedAt()).getTime());
 	}
 
 	static async getExpiredPRs(config: Config) {
 		const pullRequests: PullRequestInfo[] = await this.getPullRequests(config);
-		return await async.filter(pullRequests, async (pr) => pr.isExpired());
+		return await async.filter(pullRequests, async (pr) => await pr.isExpired());
 	}
 }
