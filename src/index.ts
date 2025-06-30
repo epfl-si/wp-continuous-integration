@@ -6,32 +6,18 @@ import {Deployment, KubernetesAPI} from "./utils/kubernetes";
 
 const args = process.argv.slice(2);
 const configFileIndex = args.findIndex(arg => arg === '-p');
-let config: Config | undefined;
 
 const pjson = require('../package.json');
 const version = pjson.version;
 
-if (configFileIndex !== -1 && configFileIndex + 1 < args.length) {
-	const configFilePath = args[configFileIndex + 1];
-	info(`Using config file path: ${configFilePath}`, '');
-
-	config = loadConfig(configFilePath);
-	if (!config) {
-		throw new Error("Error loading config file")
-	}
-	configLogs(config);
-} else {
-	throw new Error("Config file not specified")
-}
-
 info(`wp-continuous-integration started with version ${version}`, {});
 
-async function scheduleActivePRsToDeployments() {
-	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate(config!);
-	const expiredPullRequests = await PullRequestInfo.getExpiredPRs(config!);
-	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc(config!.NAMESPACE);
-	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests, [], deployments, true)));
-	await Promise.all(deployments.map(dep => scheduleToDeployment(config!.NAMESPACE, dep, pullRequests, expiredPullRequests, deployments, false)));
+async function scheduleActivePRsToDeployments(config: Config) {
+	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate( config);
+	const expiredPullRequests = await PullRequestInfo.getExpiredPRs( config);
+	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc( config.NAMESPACE);
+	await Promise.all(deployments.map(dep => scheduleToDeployment( config.NAMESPACE, dep, pullRequests, [], deployments, true)));
+	await Promise.all(deployments.map(dep => scheduleToDeployment( config.NAMESPACE, dep, pullRequests, expiredPullRequests, deployments, false)));
 	for (const pr of pullRequests) {
 		await pr.createComment('🍍 ' + pr.skipped())
 	}
@@ -98,6 +84,7 @@ function getPullRequestToRebuild(checkFlavor: boolean, pullRequests: PullRequest
 	}
 	return pullRequestToRebuild;
 }
+
 async function createExpireCommentForPRs(expiredPR: PullRequestInfo[], buildUrl: string, deploymentBranchName: string) {
 	// All PRs successfully built in this deployment but on another branch is expired
 	const expPR = expiredPR.filter(p =>
@@ -113,18 +100,31 @@ async function createExpireCommentForPRs(expiredPR: PullRequestInfo[], buildUrl:
 
 let running = false;
 
-async function main() {
+async function main(config: Config) {
 	if (!running) {
 		console.log('Running cron job at', new Date().toISOString());
 
 		running = true
 		try {
-			await scheduleActivePRsToDeployments();
+			await scheduleActivePRsToDeployments(config);
 		} finally {
 			running = false
 		}
 	}
 }
 
-setInterval(main, 5 * 60 * 1000);
-main()
+if (configFileIndex !== -1 && configFileIndex + 1 < args.length) {
+	const configFilePath = args[configFileIndex + 1];
+	info(`Using config file path: ${configFilePath}`, '');
+
+	const config = loadConfig(configFilePath);
+	if (!config) {
+		throw new Error("Error loading config file")
+	} else {
+		configLogs(config);
+		setInterval(main, 5 * 60 * 1000);
+		main(config)
+	}
+} else {
+	throw new Error("Config file not specified")
+}
