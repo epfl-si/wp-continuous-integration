@@ -8,6 +8,11 @@ type BotComment = {
 	user: { login: string }
 }
 
+enum Status {
+	Active,
+	Expired
+}
+
 export class PullRequestInfo {
 	private _repository: string;
 	private _id: number;
@@ -87,18 +92,14 @@ ${reason}
 		return this._branchName.replace(/[^A-Za-z0-9]+/g, "-").toLowerCase().substring(0, 125);
 	}
 
-	async isActive() {
+	async _getStatus() {
+		const lastBotComments = this.lastBotComment();
 		//A PR is active if there are no bot comments or if the SHA in the last comment is not the same of the current SHA
-		const lastBotComments = this.lastBotComment();
-		if (lastBotComments == null) return true;
-		return lastBotComments?.body?.indexOf(this.commitSha()) == -1;
-	}
-
-	async isExpired() {
+		if (lastBotComments == null || lastBotComments?.body?.indexOf(this.commitSha()) == -1)
+			return Status.Active;
 		//A PR is expired if the SHA of the bot comment is the same of the current SHA and it was successfully built
-		const lastBotComments = this.lastBotComment();
-		if (lastBotComments == null) return false;
-		return lastBotComments?.body?.indexOf(this.commitSha()) > -1 && lastBotComments?.body?.indexOf("has successfully built and is available") > -1;
+		else if (lastBotComments != null && lastBotComments?.body?.indexOf(this.commitSha()) > -1 && lastBotComments?.body?.indexOf("has successfully built and is available") > -1)
+			return Status.Expired;
 	}
 
 	async getLastBotComment() {
@@ -135,12 +136,12 @@ ${reason}
 
 	static async getAvailablePRsSortedByDate(config: Config) {
 		const pullRequests: PullRequestInfo[] = await this.getPullRequests(config);
-		const activePullRequests = await async.filter(pullRequests, async (pr) => await pr.isActive());
+		const activePullRequests = await async.filter(pullRequests, async (pr) => (await pr._getStatus()) == Status.Active);
 		return activePullRequests.sort((a, b) => new Date(a.updatedAt()).getTime() - new Date(b.updatedAt()).getTime());
 	}
 
 	static async getExpiredPRs(config: Config) {
 		const pullRequests: PullRequestInfo[] = await this.getPullRequests(config);
-		return await async.filter(pullRequests, async (pr) => await pr.isExpired());
+		return await async.filter(pullRequests, async (pr) => await (pr._getStatus()) == Status.Expired);
 	}
 }
