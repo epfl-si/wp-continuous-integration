@@ -1,6 +1,6 @@
 import {configLogs, error, getErrorMessage, info} from "./utils/logger";
 import {Config, loadConfig} from "./utils/configFileReader";
-import {PullRequestInfo} from "./pullRequestInfo";
+import {PullRequestInfo, Status} from "./pullRequestInfo";
 import {PipelineRun} from "./utils/piplineRun";
 import {Deployment, KubernetesAPI} from "./utils/kubernetes";
 
@@ -13,12 +13,15 @@ const version = pjson.version;
 info(`wp-continuous-integration started with version ${version}`, {});
 
 async function scheduleActivePRsToDeployments(config: Config) {
-	const pullRequests = await PullRequestInfo.getAvailablePRsSortedByDate( config);
-	const expiredPullRequests = await PullRequestInfo.getExpiredPRs( config);
+	const openPullRequests = await PullRequestInfo.getActivePRsAndStatusesSortedByDate( config);
+	const activePullRequests = openPullRequests.filter(pr => pr.status == Status.Active)
+		.map(pr => pr.pullRequest);
+	const expiredPullRequests = openPullRequests.filter(pr => pr.status == Status.Expired)
+		.map(pr => pr.pullRequest);
 	const deployments = await KubernetesAPI.getDeploymentsSortedByLastDeployDesc( config.NAMESPACE);
-	await Promise.all(deployments.map(dep => scheduleToDeployment( config.NAMESPACE, dep, pullRequests, [], deployments, true)));
-	await Promise.all(deployments.map(dep => scheduleToDeployment( config.NAMESPACE, dep, pullRequests, expiredPullRequests, deployments, false)));
-	for (const pr of pullRequests) {
+	await Promise.all(deployments.map(dep => scheduleToDeployment( config.NAMESPACE, dep, activePullRequests, [], deployments, true)));
+	await Promise.all(deployments.map(dep => scheduleToDeployment( config.NAMESPACE, dep, activePullRequests, expiredPullRequests, deployments, false)));
+	for (const pr of activePullRequests) {
 		await pr.createComment('🍍 ' + pr.skipped())
 	}
 }

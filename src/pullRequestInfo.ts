@@ -8,7 +8,7 @@ type BotComment = {
 	user: { login: string }
 }
 
-enum Status {
+export enum Status {
 	Active,
 	Expired
 }
@@ -134,14 +134,18 @@ ${reason}
 		return prs;
 	}
 
-	static async getAvailablePRsSortedByDate(config: Config) {
+	static async getActivePRsAndStatusesSortedByDate(config: Config) {
 		const pullRequests: PullRequestInfo[] = await this.getPullRequests(config);
-		const activePullRequests = await async.filter(pullRequests, async (pr) => (await pr._getStatus()) == Status.Active);
-		return activePullRequests.sort((a, b) => new Date(a.updatedAt()).getTime() - new Date(b.updatedAt()).getTime());
-	}
-
-	static async getExpiredPRs(config: Config) {
-		const pullRequests: PullRequestInfo[] = await this.getPullRequests(config);
-		return await async.filter(pullRequests, async (pr) => await (pr._getStatus()) == Status.Expired);
+		const activePullRequests: PullRequestInfo[] = (await async.filter(pullRequests, async (pr) => (await pr._getStatus()) == Status.Active))
+			.sort((a, b) => new Date(a.updatedAt()).getTime() - new Date(b.updatedAt()).getTime());
+		const expiredPullRequests: PullRequestInfo[] = await async.filter(pullRequests, async (pr) => await (pr._getStatus()) == Status.Expired);
+		const pullRequestsWithStatus: {pullRequest: PullRequestInfo, status: Status}[] = [];
+		activePullRequests.forEach(pr => {
+			pullRequestsWithStatus.push({pullRequest: pr, status: Status.Active})
+		});
+		expiredPullRequests.forEach(pr => {
+			pullRequestsWithStatus.push({pullRequest: pr, status: Status.Expired})
+		});
+		return pullRequestsWithStatus;
 	}
 }
