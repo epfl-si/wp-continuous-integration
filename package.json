@@ -5,7 +5,7 @@
 	"main": "index.js",
 	"scripts": {
 		"start": "npx tsx ./src/index.ts -p ./wp-ci-config.yaml",
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "npx mocha './test/**/*.ts' --require tsx --timeout 100000"
 	},
 	"repository": {
 		"type": "git",
