@@ -11,7 +11,8 @@ export type Deployment = {
 	flavor: string,
 	fruit: string,
 	date: Date,
-	builtFromBranch: string
+	builtFromBranch: string,
+	namespace: string
 };
 
 export class KubernetesAPI {
@@ -95,6 +96,7 @@ export class KubernetesAPI {
 				date: latestRs ? latestRs.metadata?.creationTimestamp : null,
 				builtFromBranch: deployment.spec && deployment.spec.template && deployment.spec.template.metadata && deployment.spec.template.metadata.annotations
 					? deployment.spec.template.metadata.annotations["epfl/built-from-branch"] : '',
+				namespace
 			} as Deployment;
 		});
 		return deployments.sort((a, b) => a.date.getTime() - b.date.getTime());
