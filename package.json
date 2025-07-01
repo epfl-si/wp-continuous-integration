@@ -16,9 +16,11 @@
 	"devDependencies": {
 		"@types/async": "^3.2.24",
 		"@types/js-yaml": "^4.0.9",
+		"@types/mocha": "^10.0.10",
 		"@types/node": "^22.15.30",
 		"@types/node-fetch": "^2.6.12",
 		"js-yaml": "^4.1.0",
+		"mocha": "^11.7.1",
 		"ts-node": "^10.9.2",
 		"typescript": "^5.8.3"
 	},
