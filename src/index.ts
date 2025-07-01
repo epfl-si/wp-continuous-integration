@@ -190,7 +190,7 @@ if (configFileIndex !== -1 && configFileIndex + 1 < args.length) {
 		throw new Error("Error loading config file")
 	} else {
 		configLogs(config);
-		setInterval(main, 5 * 60 * 1000);
+		setInterval(main, 5 * 60 * 1000, config);
 		main(config)
 	}
 } else {
