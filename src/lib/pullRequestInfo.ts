@@ -1,5 +1,5 @@
-import {callGitHubAPI} from "./utils/webServiceCall";
-import {Config} from "./utils/configFileReader";
+import {callGitHubAPI} from "./webServiceCall";
+import {Config} from "./configFileReader";
 import async from "async";
 
 type BotComment = {

@@ -1,8 +1,8 @@
-import {configLogs, error, getErrorMessage, info} from "./utils/logger";
-import {Config, loadConfig} from "./utils/configFileReader";
-import {PullRequestInfo, Status} from "./pullRequestInfo";
-import {PipelineRun} from "./utils/piplineRun";
-import {Deployment, KubernetesAPI} from "./utils/kubernetes";
+import {configLogs, error, getErrorMessage, info} from "./lib/logger";
+import {Config, loadConfig} from "./lib/configFileReader";
+import {PullRequestInfo, Status} from "./lib/pullRequestInfo";
+import {PipelineRun} from "./lib/piplineRun";
+import {Deployment, KubernetesAPI} from "./lib/kubernetes";
 import {groupBy} from "./lib/groupBy";
 import {makeResolvable} from "./lib/promises";
 

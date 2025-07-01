@@ -1,6 +1,6 @@
 import {Deployment, KubernetesAPI} from "./kubernetes";
 import {formatDateUTC, randomRFC1123Fragment} from "./utils";
-import {PullRequestInfo} from "../pullRequestInfo";
+import {PullRequestInfo} from "./pullRequestInfo";
 import {info} from "./logger";
 
 const getFlagValue = (flag: string): string | undefined => {
