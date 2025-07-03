@@ -170,7 +170,7 @@ let running = false;
 
 async function main(config: Config) {
 	if (!running) {
-		console.log('Running cron job at', new Date().toISOString());
+		console.log('Polling active PRs at', new Date().toISOString());
 
 		running = true
 		try {
