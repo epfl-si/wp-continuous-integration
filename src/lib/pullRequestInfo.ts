@@ -61,7 +61,7 @@ ${reason}
 
 	expired(): string {
 		console.log(this.moniker());
-		return `The ${this.moniker()} is expired.`;
+		return `The ${this.moniker()} was evicted by a more recent pull request.`;
 	}
 
 	moniker(): string {
