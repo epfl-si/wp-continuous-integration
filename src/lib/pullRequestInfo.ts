@@ -41,7 +41,7 @@ export class PullRequestInfo {
 	}
 
 	success(buildURL: string): string {
-		return `The ${this.moniker()}, has successfully built and is available at ${buildURL}.`;
+		return `The ${this.moniker()}, was successfully built and is available at ${buildURL}.`;
 	}
 
 	fail(reason: any): string {
