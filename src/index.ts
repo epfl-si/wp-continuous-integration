@@ -57,21 +57,21 @@ async function scheduleActivePRsToDeployments(config: Config) {
 		{
 			onDeploySuccess(prs: PullRequestInfo[]) {
 				for ( const pr of prs ) {
-					notificationWork.push(pr.createComment(getCallSignOfDeployment(dep) + pr.success(getBuildUrlOfDeployment(dep))));
+					notificationWork.push(pr.tryCreateComment(getCallSignOfDeployment(dep) + pr.success(getBuildUrlOfDeployment(dep))));
 				}
 				notificationWork.push(notifyEvictions(openPullRequests, getBuildUrlOfDeployment(dep), dep.builtFromBranch));
 			},
 			onDeployFailure(prs: PullRequestInfo[], err: Error) {
 				error(`Failed to schedule to deployment ${dep.deploymentName}: ${getErrorMessage(err)}`, err)
 				for ( const pr of prs ) {
-					notificationWork.push(pr.createComment(getCallSignOfDeployment(dep) + pr.fail(err)));
+					notificationWork.push(pr.tryCreateComment(getCallSignOfDeployment(dep) + pr.fail(err)));
 				}
 			}
 		}
 	)));
 	for (const branchName of Object.keys(activePullRequestGroups)) {
 		for (const pr of activePullRequestGroups[branchName]) {
-			notificationWork.push(pr.createComment('🍍 ' + pr.skipped()))
+			notificationWork.push(pr.tryCreateComment('🍍 ' + pr.skipped()))
 		}
 	}
 
@@ -162,7 +162,7 @@ async function notifyEvictions(openPullRequests: {pullRequest: PullRequestInfo,	
 		p.branchName() != deploymentBranchName
 	)
 	for ( const epr of evictedPullRequests ) {
-		await epr.createComment('🍍' + epr.expired());
+		await epr.tryCreateComment('🍍' + epr.expired());
 	}
 }
 
