@@ -110,8 +110,12 @@ ${reason}
 			new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest);
 	}
 
-	async createComment(message: string){
-		await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'POST', undefined, {body: message});
+	async tryCreateComment(message: string) {
+		try {
+			await callGitHubAPI(this._config, `/repos/epfl-si/${this._repository}/issues/${this._number}/comments`, 'POST', undefined, {body: message});
+		} catch (e) {
+			console.error("Unable to comment in review thread: ", e);
+		}
 	}
 
 	static async getPullRequests(config: Config) {
